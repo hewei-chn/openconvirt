@@ -1,0 +1,21 @@
+# Sample xen_config_template
+# please see xen documentation for additional parameters
+# The following variables can be used in the template
+# IMAGE_NAME : the name of the image being provisioned
+# VM_NAME : The name entered by the user would be substituted here.
+#
+#
+name = ''
+ramdisk = '/var/cache/convirt/$IMAGE_LOCATION/initrd.img'
+kernel = '/var/cache/convirt/$IMAGE_LOCATION/vmlinuz'
+bootloader = ''
+extra = 'ks=http://mystage.location.com/myconfig.ks'
+vif=['mac=$AUTOGEN_MAC, bridge=$DEFAULT_BRIDGE']
+on_reboot = 'destroy'
+on_shutdown = 'rename-restart'
+on_crash = 'destroy'
+vcpus = 1
+memory = 256
+disk = ['file:$VM_DISKS_DIR/$VM_NAME.disk.xm,xvda,w']
+root = ''
+

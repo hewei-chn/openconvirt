@@ -1,0 +1,4 @@
+97c97
+<                  host = "localhost", port = 8006, path = XML_RPC_SOCKET,
+---
+>                  host = "", port = 8006, path = XML_RPC_SOCKET,

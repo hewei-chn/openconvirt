@@ -1,0 +1,148 @@
+/* Styles by Rajan >> 17-11-2009 >> Start */
+
+p, ul, li
+{
+	width: auto;
+	height: auto;
+	margin: 0px;
+	padding: 0px;
+}
+
+div.header-container
+{
+	width: auto;
+	height: 63px;
+	margin: 0px;
+	padding: 0px;
+	font-family: "Verdana", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #004C8A;
+	text-decoration: none;
+	background-image: url(../images/bg-header.gif);
+	background-repeat: repeat;
+}
+
+div.header-left
+{
+	width: auto;
+	height: auto;
+	margin: 20px 0px 0px 0px;
+	padding: 0px 0px 0px 23px;
+	float: left;
+}
+
+div.header-right
+{
+	width: 455px;
+	height: auto;
+	margin: 0px;
+	padding: 0px;
+	float: right;
+}
+
+div.header-right-left
+{
+	width: auto;
+	height: auto;
+	margin: 10px 0px 0px 0px;
+	padding: 0px 20px 0px 0px;
+	float: left;
+}
+
+div.header-right-left p
+{
+	display: inline;
+}
+
+div.header-right-right
+{
+	width: 315px;
+	height: 37px;
+	margin: 0px;
+	padding: 0px 27px 0px 0px;
+	float: right;
+}
+
+ul
+{
+	list-style: none;
+}
+
+ul.admin-nav-menu li
+{
+	display: inline;
+}
+
+ul.admin-nav-menu li a
+{
+	height: 37px;
+	float: left;
+	background-image: url(../images/admin-nav-menu.gif);
+}
+
+ul.admin-nav-menu li.admin a
+{
+	width: 66px;
+	height: 37px;
+	background-position: 0px 0px;
+}
+
+ul.admin-nav-menu li.admin a:hover
+{
+	background-position: 0px 37px;
+}
+
+ul.admin-nav-menu li.task a
+{
+	width: 50px;
+	height: 37px;
+	background-position: 249px 0px;
+}
+
+ul.admin-nav-menu li.task a:hover
+{
+	background-position: 249px 37px;
+}
+
+ul.admin-nav-menu li.password a
+{
+	width: 135px;
+	height: 37px;
+	background-position: 199px 0px;
+}
+
+ul.admin-nav-menu li.password a:hover
+{
+	background-position: 199px 37px;
+}
+
+ul.admin-nav-menu li.logout a
+{
+	width: 64px;
+	height: 37px;
+	background-position: 64px 0px;
+}
+
+ul.admin-nav-menu li.logout a:hover
+{
+	background-position: 64px 37px;
+}
+div.header-right-bottom
+{
+	width: auto;
+	height: auto;
+	padding: 0px 20px 0px 0px;
+
+}
+div.header-co
+{
+	width: auto;
+	height: auto;
+	margin: 30px 0px 0px 0px;
+	padding: 0px 0px 0px 0px;
+	float: left;
+}
+
+
+/* Styles by Rajan >> 17-11-2009 >> End */

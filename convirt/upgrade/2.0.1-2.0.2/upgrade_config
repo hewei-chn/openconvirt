@@ -1,0 +1,68 @@
+#!/bin/bash
+
+upgrade_config()
+{
+  upgrade_base=$1
+  dev_ini=$2
+
+  echo "Upgrading $dev_ini from ce2.0.1-ce2.0.2"
+  #while read line
+  #do
+    #devline=$devline$line"\n"
+  #done < "$upgrade_base/2.0.1-2.0.2/diff.ini"
+  #sed -i -e "/^\[loggers\]/i `echo $devline`" $dev_ini
+
+ sed  -i "
+
+/^\[loggers\]/ { i\
+view_console_time=20
+}
+
+/^\[loggers\]/ { i\
+update_from_version=ce2.0.1
+}
+
+/^keys = root, convirt, sqlalchemy, auth, tgi18n/ {s\
+/tgi18n/tgi18n, AVAIL_TIMING, STORAGE_TIMING, METRICS_TIMING/
+}
+
+/^max_ping_servers/ {s\
+/max_ping_servers=2/max_ping_servers=10/
+}
+
+/^max_ping_workers/ {s\
+/max_ping_workers=2/max_ping_workers=5/
+}
+
+/^\[logger_sqlalchemy]/ { i\
+\[logger_STORAGE_TIMING\]\n\
+level = WARN\n\
+handlers = rotating\n\
+qualname = STORAGE_TIMING\n\
+\n\
+\[logger_AVAIL_TIMING\]\n\
+level = WARN\n\
+handlers = rotating\n\
+qualname = AVAIL_TIMING\n\
+\n\
+\[logger_METRICS_TIMING\]\n\
+level = WARN\n\
+handlers = rotating\n\
+qualname = METRICS_TIMING\n\
+
+}
+/^completion_time\=/ { a\
+max_worker_wait_time=300\n\
+max_node_avail_wait_time=45\n\
+max_vm_avail_wait_time=60\n\
+max_node_metrics_wait_time=90\n\
+
+}
+
+" $dev_ini
+
+  if [ $? != 0 ]; then 
+     return 1
+  fi
+  return 0
+}

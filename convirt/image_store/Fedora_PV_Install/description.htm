@@ -1,0 +1,65 @@
+<body>
+<span style="font-size: 200%; font-family: serif; color:#0000FF;text-align: center">
+Fedora Core Install
+</span>
+<br/>
+<span style="font-size: 100%; font-family: serif; color:#0000FF;text-align: center">
+Fedora Core 8, Interactive Installation   (paravirtualized kernel)
+</span>
+
+<br/><br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Type:
+</span>
+ConVirt Provisionable Image
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Version:
+</span>
+1.0
+
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Author:
+</span>
+The ConVirt Team
+
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Requirements:
+</span>
+ConVirt v0.8+,  Xen v3.0.4+, 32-bit, Xen-enabled Linux host.
+
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Description:
+</span>
+This image creates a 5G virtual disk (vbd) and kicks off an interactive, anaconda installation for Fedora 8. 
+The kernel_src and ramdisk_src point to the location from where the initial kernel and ramdisk are to be downloaded. 
+
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Instructions:
+</span>
+<ol>
+	<li> Check the default provisioning parameters and alter them to suit your environment if required.</li>
+	<li> Provision the VM configuration normally using ConVirt.</li>
+	<li> Start the Virtual Machine (VM) and complete the installation.</li>
+	<li> <span style="color:red"> (Important)</span> Once the installation is complete, edit the new VM's configuration and change 
+the kernel and ramdisk entries to <span style='font-style: italic'> EITHER </span> point to a local copy of a xen paravirtualised 
+kernel and associated ramdisk. <span style='font-style: italic'> OR </span> set the bootloader entry <span style='font-style: normal; font-size:85%'>
+(typically /usr/bin/pygrub)</span>
+	</li>
+	<li> Restart the VM.</li>
+</ol>
+
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Contact:
+</span>
+Visit http://www.convirture.com. We can be reached there via our user forums or email.
+</body>

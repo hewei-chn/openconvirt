@@ -1,0 +1,41 @@
+# This file contains common definitions
+
+
+qt="'"
+GREP=/bin/grep
+SED=/bin/sed
+DD=/bin/dd
+CP=/bin/cp
+MV=/bin/mv
+MKDIR=/bin/mkdir
+MKTEMP=/bin/mktemp
+MKE2FS=/sbin/mke2fs
+RMDIR=/bin/rmdir
+MOUNT=/bin/mount
+UMOUNT=/bin/umount
+TAR=/bin/tar
+UNZIP=/usr/bin/unzip
+GUNZIP=/bin/gunzip
+BUNZIP=/usr/bin/bunzip2
+MKSWAP=/sbin/mkswap
+QEMU_IMG=qemu-img   # lets depend on path to find the right version.
+DIRNAME=/usr/bin/dirname
+
+
+# LVM commands
+LVM_BASE=/usr/sbin
+
+# fix for debian/ubuntu lvm2 package in /sbin location
+if [ ! -x $LVM_BASE/lvcreate ]; then
+   LVM_BASE=/sbin
+fi
+
+LVCREATE=$LVM_BASE/lvcreate
+LVREMOVE=$LVM_BASE/lvremove
+LVDISPLAY=$LVM_BASE/lvdisplay
+
+if [ ! -x $LVCREATE ]; then
+   echo "WARNING : LVM commands not found. $LVCREATE executable does not exist."
+fi
+
+DD_BLOCK_SIZE=4096k

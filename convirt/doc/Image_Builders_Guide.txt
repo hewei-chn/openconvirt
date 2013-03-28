@@ -1,0 +1,207 @@
+==============================================
+Project ConVirt
+ConVirt v1.0 - Image builders Guide
+
+Copyright (c) 2009 ConVirt contributors
+==============================================
+
+I. Introduction
+---------------
+ConVirt allows you to provision and monitor Xen based VMs. ConVirt ships with a few images that you may use as is or modify to suit your environment. While most minor modifications to an existing image can be done from the ConVirt UI, creating a new provisionable image using the sophisticated and powerful ConVirt provisioning mechanism requires a little more care. 
+
+This guide details the various components of the ConVirt provisioning scheme and the steps required to create new virtual machine images provisionable by ConVirt.
+
+II. Provisioning system 
+-----------------------
+ConVirt has an Image Store that holds a list of images that can be provisioned. The image store location simply holds a few common files and a directory per image. 
+
+ConVirt provisioning is designed to be scriptable and customizable to suit most of the provisioning requirements. In order to provision a VM, the following critical pieces are required:
+
+ a. The VM config file (xen config in this case)
+ b. The script that is specific to a particular image and knows how to 'prepare' it. This would typically involve 
+   * creating vbd disks or partition
+   * creating a file system
+   * copying / installing the OS/and software components
+   * customizing the prepared image
+ c. The image configuration file. This file is used as customizable inputs to the provisioning process.
+
+When a user chooses a particular image to be provisioned, ConVirt reads in the VM config file and the provisioning config file and allows the user to customize the provisioning process. Once user presses ok, ConVirt,
+  * prepares the execution environment on the machine where the VM is to be provisioned 
+  * launches provisioning script 
+  * passes the VM config as well as provisioning configuration as input files
+
+  When the script finishes, a VM config file and all supporting elements required to start the VM are expected to be complete.
+ 
+
+III. Layout :
+-------------
+Lets take a moment to examine the files and their locations.
+
+Image Store location : 
+    Typically at /var/cache/convirt/image_store
+    Each directory under this location is a separate image. 
+    
+
+common dir : 
+    under image_store location. Contains two files 'defs' and 'functions'. 
+    defs : contains common definitions 
+    functions : contains some common functions that can be used by 
+              provisioning script
+     
+custom_scripts : 
+    Some common scripts that can be used as a part of provisioning various 
+    images. Currently empty, would be populated through community effort.
+
+example : 
+    A image skeleton. Use this as your starting point.
+    example/vm_conf.template : The VM config file. (Template)
+    example/provision.sh     : the provisioning shell script
+    example/image.conf       : the image configuration file
+    example/custom_scripts   : any image specific customization scripts
+                               These would be typically invoked from 
+                               the provisioning script.
+    example/description.htm  : a small file describing the image
+
+Fedora_Core_Install : 
+    A fedora core image that kicks off fedora installation.
+
+Linux_CD_Install : 
+    This image creates a vm that starts a Linux installation from a CD ROM
+
+Windows_CD_Install :
+    This image starts a Windows install from a CD ROM
+
+
+Note : though commons and example are under the image store location they are not images and excluded from the image listing shown in ConVirt
+
+
+IV Rolling your own image :
+-----------------------
+   This section describes step by step process of creating a new image.
+Version 0.8 has capability to do most of these steps from the UI now. Use the
+Create Like menu option to create a copy of the image and use the Edit
+Settings dialog to customize VM and Provisioning parameters. 
+
+An image is represented by a directory under the image store location. So
+after using the UI to do create like and customization, you can go to the
+directory and see the files.
+
+* VM Config file : 
+        The vm_conf.template file under the image directory, describe the VM config parameters like, memory, cpu, disks etc.  Think about typical requirements for VMs of this type and put appropriate values for VM config parameters as possible. This file is similar to any xen config file but you can use some variables that would help you organize things better. Currently IMAGE_STORE,IMAGE_NAME and VM_NAME variables are pre-defined.
+
+For example the disk entry in the vm_conf.template file would typically look like
+
+disk = ['file:/vm_disks/$VM_NAME.disk.xm,hda,w']
+
+Now this entry would look like 
+
+disk = ['file:/vm_disks/Joe_Desktop.disk.xm,hda,w']
+
+when a vm with Joe_Desktop is provisioned.
+
+All the names in the image configuration file can also be used as variables in vm template. (see how Fedora_Core_Install image KERNEL_TYPE defined in image.conf is used in its vm_config.template ) 
+
+This templating mechanism allows you to customize provisioning to suite your needs.
+
+* Image config file : 
+    The image.conf file under the image directory describes various parameters that would govern the provisioning process. This file is in the python syntax. The types of parameters typically falls under the following categories
+  a. source : These variables usually point to the source from where other files would be copied from. 
+    examples : kernel and ramdisk locations
+               reference VM disk location 
+               
+
+  b. disk parameters : The VM config file (in the xen case atleast) does not contain information about the size of the disk or type of the disk etc. The image config file contains parameters that describes the disk details.
+    examples : hda_disk_size
+               hda_fs_type
+   
+  c. directives : Any directives to the provisioning process/script can also be specified here.
+    examples : hda_disk_create='yes'
+               create_root_acct='no'
+ 
+ 
+  d. customization : After the disk is created and prepared, there would typically be some tweaking required. 
+    examples :
+	     firewall='on'
+	     admin_user='admin'
+	     admin_password='$1$9qAFryp3$XmvqcFN/CJG4AC7jgyVE8'
+	     admin_group='admin'
+            
+  e. Variables : As mentioned earlier, parameters specified in this file can be used as template variables for the vm config file.
+     example :  In Fedora_Core_Install, KERNEL_TYPE points to description of the kernel which allows different kernels for different vms to co-exist.
+ 
+
+Note : This file can also use, IMAGE_STORE,IMAGE_NAME and VM_NAME variableis if required. They would get correctly substituted at the time of provisioning.
+
+* Provisioning script :
+  This is the script that gets executed on the the machine where the VM is to be provisioned. This file is supplied the location of the vm config file and the image config file. It uses information from both these sources and is suppose to perform all necessary actions so that the provisioned VM can start functioning when started.
+  Copy provision.sh either from example directory or from any of the other images that is most suitable for the image that you are trying to build. There is no-magic bullet here. Some small code needs to be written to suite the type of image being provisioned as well as the environment in which the provisioning would take place. As you are writing the script add more parameters to image.conf if required.
+
+   ConVirt attempts to help this process by providing some common functions and definitions that can be used. For example the common/functions file has a create_disk function that supports creating VBD based or LVM based disks. Over time, with contribution from the community, we hope that most of the common provisioning functions would be available for everyone to use.
+
+* Log file : When the provisioning script executes on the managed server, it is passed a log file name. The logfile is created under /var/log/convirt/<image name>/ with the name <image name>_<vm name>.log. At the same location, you will find corresponding image.conf file. These would be particularly useful while you are developing a new image. 
+    
+* description file :
+   Create a description file description.htm under image directory, that describes the image, assumptions, caveats etc.This file would be displayed in ConVirt when the user selects the image in the left navigation bar. One can use some small mark up to pretty things up, but this support is limited. Please refer to description files shipped with ConVirt to learn about the markup supported.
+
+
+* packaging : 
+    Create a tar file that can be untared in the image store location. Optionally you can create installable packages.
+
+We encourage everyone to create and share their images. We would be glad to put up your image for others to download. The best way to reach us is through our forums or mailing list.
+
+
+V. Advanced topics :
+--------------------
+
+* computed options : 
+
+Both vm_conf.template and the image.conf use python syntax. This allows you to have expressions and compute values of parameters. If you are computing a value for a parameter, please add a computed_options list in the file.
+
+example :
+computed_options = ['my_computed_var']
+
+For convenience, the convirt.conf file has default_computed_options containing commonly used variables. ("arch", "arch_libdir", "device_model")
+
+
+* customizable options : 
+
+It is possible to restrict user from changing certain critical things during the provisioning process. By default all information in the vm config file and image config file are customizable. You can add a customizable_options list in the file to restrict what attributes would be editable by user through the ConVirt UI.
+Note : For VM Config file, information in the Miscellaneous tab can be restricted.
+
+For example : if you just want the hda_disk size to be customizable but not allow anything else. You would add the following line image.conf file.
+
+customizable_options=['hda_disk_size']
+
+
+* custom_scripts : 
+
+Once the basic disk creation and preparation is done, there would typically be a bunch of tweaking that would be required. Here are some of the examples of tweaking
+   -- creating a root account with specific password
+   -- turning off firewalls
+   -- updating hostname, ip address etc.
+   -- update SeverName entry in the httpd.conf file
+
+   These tweaks may be different for different linux distributions, or the service that the VM is trying to provide (http server, firewall, router, database). We recommend keeping customization for each distribution or each kind of service in a separate directory. The image.conf can then be augmented with the custom_list variable to contain the directories from which the all scripts need to be executed. The scheme similar to linux initialization can be used to sequence the scripts. 
+
+This scheme would allow creation of VMs providing more complex services. For example, one can create an image that would provide Red Hat + Apache + MySQL.  
+
+The provision.sh should do the following
+   a. Look for the directory under $image_store/$image_name/<dirname>
+      if found, execute all scripts under it.
+ 
+   b. If dir not found in step 1 :
+      Look for directory under $image_store/<dirname> 
+      if found, execute all scripts under the directory.
+
+  
+
+VI. Miscellany
+--------------
+
+* Sharing Images. As we've mentioned above, we urge you to share your work with the community.
+So, if you've developed a virtual device, appliance or server configuration that you think will be useful to others, please consider sharing it. We will be glad to post your provisionable image at our primary downloadable location ... just drop us a line at the forums or on our mailing list. (http://www.convirt.net)
+
+
+* Sharing sdk components. In addition to images, if you've written any useful or cool chunks of code that you believe would benefit other image developers like yourself, please do drop us a line and we'll be happy to include it in our next release.
+
+

@@ -1,0 +1,4 @@
+92c92
+<     def __init__(self, auth, use_tcp=False, host = "localhost", port = 8006,
+---
+>     def __init__(self, auth, use_tcp=False, host = "", port = 8006,

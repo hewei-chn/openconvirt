@@ -1,0 +1,316 @@
+# contains utility function useful during the provisioning of the image
+#
+# author : jd_jedi@users.sourceforge.net
+#
+
+## PREREQUISITE : PLEASE source defs.sh
+# TODO : add, info, warning , and error level to the log file
+log_msg()
+{
+    msg="$*"
+    
+    
+    if [ -n "${log_file}" ]; then
+        echo $msg >> "${log_file}"
+#    else
+        echo $msg
+    fi
+}
+
+
+
+#
+# fetch file given http or ftp url
+#
+# --- usage --
+# SRC="http://www.google.com"
+# DEST="/foo/bar/google_home"
+# fetch_file $SRC $DEST
+# 
+#
+
+fetch_file()
+{
+  src=$1
+  dest=$2
+  if [ -e "$dest" ]; then
+      log_msg "$dest already exists"
+  else
+     tmp_http=`echo $src | $SED -n "/http:\\/\\//p"`
+     tmp_ftp=`echo $src | $SED -n "/ftp:\\/\\//p"`
+
+     # export proxy vars for sub processes
+     # tested that if the vars are missing, there is not harm
+     export http_proxy
+     export ftp_proxy
+     if [ "$tmp_http" = "$src" ]; then
+     	 retrieve_url "$src" "$dest"
+     elif [ "$tmp_ftp" = "$src" ]; then
+     	 retrieve_url "$src" "$dest"
+     else 
+ 	 $CP -a "$src" "$dest"
+     fi
+  fi
+}
+
+## helper function to retrieve url using python.
+retrieve_url()
+{
+  src=$1
+  dest=$2
+
+  python <<EOF
+import socket, errno, urllib2
+from urllib2 import HTTPError, URLError
+
+def retrieve_url(url, dest, proxies=None,
+              reporthook=None,data=None,chunk=2048):
+    if reporthook:
+        raise Exception("reporthook not supported yet")
+    
+    resp = None
+    df = None
+    try:
+        if proxies:
+            proxy_support = urllib2.ProxyHandler(proxies)
+            opener = urllib2.build_opener(proxy_support)
+        else:
+            opener = urllib2.build_opener()
+
+        if data:
+            resp = opener.open(url, data)
+        else:
+            resp = opener.open(url)
+
+        df = open(dest, "wb")
+        data = resp.read(chunk)
+        while data:
+            try:
+                df.write(data)
+                data = resp.read(chunk)
+            except socket.error, e:
+                if (type(e.args) is tuple) and (len(e.args) > 0) and \
+                       ((e.args[0] == errno.EAGAIN or e.args[0] == 4)):
+                    continue
+                else:
+		    raise
+    finally:
+        if df:
+            df.close()
+        if resp:
+            resp.close()
+
+retrieve_url($qt$src$qt,$qt$dest$qt)
+EOF
+
+}
+
+#
+# Create file based disk or LVM volume
+# 
+# usage
+#    create_disk disk_type disk_name disk_size 
+#
+#    disk_type : file or VBD , phy or LVM, qcow, qcow2, swap
+#    disk_size : in MB
+#
+
+create_disk()
+{
+   dk_type=$1
+   dk_name=$2
+   dk_size=$3
+
+   echo "create_disk $dk_type, $dk_name, $dk_size"
+
+   # safety. lets prevent user from messing with /dev/disk area by
+   # mistake
+   if [ `echo "$dk_name"| $GREP "/dev/disk/"` ]; then
+      log_msg "Skip:Can not create disk with /dev/disk prefix : $dk_name"
+      return
+   fi
+
+   if [ `echo "$dk_name"| $GREP "/dev/etherd/"` ]; then
+      log_msg "Skip: Can not create disk with /dev/etherd prefix : $dk_name"
+      return
+   fi
+
+
+   # create disk
+   MB=M
+   if [ "$dk_type" = "LVM" ]; then
+      # adjust the lvm name (remove leading /dev)
+      dk_name=`echo $dk_name|$SED "s/^\/dev\///"`
+      dk_lvm_group=`echo $dk_name |$SED "s/^\\(.*\)\\/\\(.*\\)/\1/"`
+      log_msg $dk_name, $dk_lvm_group
+
+      $LVDISPLAY "$dk_lvm_group"/"$dk_name" >& /dev/zero
+      if [ "$?" = "0" ]; then
+         # volume exists, remove it.
+	 $LVREMOVE -f "$dk_lvm_group"/"$dk_name" >& /dev/zero
+      fi
+      $LVCREATE -L $dk_size$MB -n "$dk_name" "$dk_lvm_group"
+      if [ "$?" != "0" ]; then
+	 log_msg "Error creating LVM $dk_name $dk_lvm_group"
+	 exit 1
+      fi
+      return
+   fi
+  
+   if [ "$dk_type" = "phy" ]; then
+      log_msg "create_disk : disk type is phy : skipping $dk_name "
+      return
+   fi
+
+   # NOTE : All types below are assumed to be creating file.
+   # Create base dir if it does not exist
+   dir_name=`dirname $dk_name`
+   if [ -d "$dir_name" ]; then
+      echo "$dir_name exists."
+   else
+      $MKDIR -p $dir_name
+      if [ "$?" != "0" ]; then
+	 log_msg "Error creating $dir_name for creating : $dk_name"
+	 exit 1
+      fi 
+   fi
+
+   if [ "$dk_type" = "VBD" -o "$dk_type" = "file" -o "$dk_type" = "tap:aio" ]; then
+      $DD if=/dev/zero of="$dk_name" bs=1 seek=$dk_size$MB count=1  >& /dev/zero
+      if [ "$?" != "0" ]; then
+	 log_msg "Error creating VBD $dk_name"
+	 exit 1
+      fi 
+   elif [ "$dk_type" = "qcow" -o "$dk_type" = "qcow2" -o "$dk_type" = "tap:qcow" ]; then
+      $QEMU_IMG create -f qcow2 "$dk_name" $dk_size$MB >& /dev/zero
+      if [ "$?" != "0" ]; then
+	 log_msg "Error creating qcow disk: $dk_name"
+	 exit 1
+      fi 
+   elif [ "$dk_type" = "vmdk" -o "$dk_type" = "vmdk" -o "$dk_type" = "tap:vmdk" ]; then
+      $QEMU_IMG -f vmdk "$dk_name" $dk_size$MB count=1  >& /dev/zero
+      if [ "$?" != "0" ]; then
+	 log_msg "Error creating vmdk disk: $dk_name"
+	 exit 1
+      fi 
+   fi
+
+   if [ "$?" != "0" ]; then
+      log_msg "Error creating disk " $dk_name $dk_type 
+      exit 1 
+   else
+      log_msg "Disk created." $dk_name, $dk_type
+   fi
+
+}
+
+function source_python_config()
+{
+    conf_file=$1
+
+    temp_config=`$MKTEMP`
+    python <<EOF > "$temp_config"
+# -*- coding: utf-8 -*-
+import types
+g={}
+l={}
+execfile("$1",g,l); 
+vtypes = [ types.StringType,
+               types.ListType,
+               types.IntType,
+               types.FloatType]
+for (k, v) in l.items():
+    if type(v) in vtypes:
+        if type(v) == types.ListType:
+           print '%s="%s"' % (k,v)
+        else:
+           print '%s="%s"' % (k,v)
+EOF
+    if [ -e "$temp_config" ]; then
+	source "$temp_config"
+    fi
+    rm "$temp_config"
+    unset temp_config
+    unset conf_file
+}
+
+# make the file system using mke2fs
+function make_fs()
+{
+    disk_name=$1
+    fs_type=$2
+
+    if [ "$fs_type" = "ext3" ]; then
+	log_msg $MKE2FS -jF "$disk_name"
+	$MKE2FS -jF "$disk_name"
+    elif [ "$fs_type" = "ext2" ]; then
+	log_msg $MKE2FS -F "$disk_name"
+	$MKE2FS -F "$disk_name"
+    elif [ "$fs_type" = "swap" ]; then
+        log_msg $MKSWAP "$disk_name" 
+        $MKSWAP "$disk_name" 
+    else
+	log_msg "fs type $2 not supported. Only ext2 and ext3 are supported."
+	return 1
+    fi
+}
+
+function copy_disk_content()
+{
+    image_src=$1
+    image_format=$2
+    dk_type=$3
+    dk_name=$4
+
+    if [ ! -r "$image_src" ]; then
+	log_msg "image source $image_src not found."
+	return 1
+    fi
+
+    temp_mount=`$MKTEMP -d -p /mnt/ mount_pt_for_cp.XXXXXXXXXX`
+    if [ "$?" != "0" ]; then
+	log_msg "Error creating temp mount point under /mnt " 
+	$RMDIR "$temp_mount"
+	return 1
+    fi
+
+    # mount if dest_type is file/vbd
+    if [ "$dk_type" = "LVM" -o "$dk_type" = "phy" ]; then
+	$MOUNT "$dk_name" "$temp_mount"
+    elif [ "$dk_type" = "VBD" -o "$dk_type" = "file" -o "$dk_type" = "tap:aio" ]; then
+	$MOUNT -o loop "$dk_name" "$temp_mount"
+    else
+        # TBD : investigate qcow2 and vmdk mounting.
+        #       For xen platform, tap:vmdk and tap:qcow can be used.
+        #       (qcow2 is not supported!)    
+        log_msg "Error mounting $dk_name, dont know how to mount $dk_type"
+        RMDIR "$temp_mount"
+	return 1
+    fi
+
+    if [ "$?" != "0" ]; then
+	log_msg "Error mounting $dk_name to $temp_mount location"
+	$RMDIR "$temp_mount"
+	return 1
+    fi
+
+    if  [ "$image_format" = "tar" ] || [ "$image_format" = "tar_gzip" ] || [ "$image_format" = "tar_bz2" ] || [ "$image_format" = "tar_bzip" ]; then
+	$TAR -xf "$image_src" -C "$temp_mount"
+    elif [ "$image_format" = "zip" ]; then
+	$UNZIP "$image_src" -d "$temp_mount"
+    elif [ "$image_format" = "dir" ]; then
+	$CP -ardT  "$image_src" "$temp_mount"
+    else
+	log_msg "Unknown Image format. $image_format"
+	$UMOUNT "$temp_mount"
+	$RMDIR "$temp_mount"
+	return 1
+    fi
+
+    code=$?
+    
+    $UMOUNT "$temp_mount"
+    $RMDIR "$temp_mount"
+
+    return $code
+}

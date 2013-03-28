@@ -1,0 +1,79 @@
+#!/usr/bin/env python
+
+import shutil
+import paramiko
+import os, re, sys
+
+v = paramiko.__version__
+
+if os.getuid() != 0:
+    print "You must be a root to apply patch."
+    sys.exit(1)
+
+
+if v.find("1.6.1") >= 0:
+    src = "paramiko.transport.py.1.6.1"
+    dest = "transport.py"
+elif v.find("1.6.2") >= 0:
+    src = "paramiko.transport.py.1.6.2"
+    dest = "transport.py"
+elif v.find("1.6.3") >= 0:
+    print "Contact us for a patch for version 1.6.3 at www.convirture.com or upgrade to newer version of paramiko"
+    sys.exit(1)
+elif v.find("1.6.4") >= 0:
+    src = "paramiko.packet.py.1.6.4"
+    dest = "packet.py"
+elif v.find("1.7.1") >= 0:   # longer strings first
+    src = "paramiko.packet.py.1.7.1"
+    dest = "packet.py"
+elif v.find("1.7 ") >= 0: # note space. This would allow it to patch only 1.7
+    src = "paramiko.packet.py.1.7"
+    dest = "packet.py"
+
+else:
+    print "Your paramiko version does not require patch : ", v
+    sys.exit(0)
+
+arch = os.uname()[4]
+if re.search('64', arch):
+    arch_libdir = 'lib64'
+else:
+    arch_libdir = 'lib'
+
+
+## determine python 
+if sys.version_info[1] == 5:
+    python_dir = "python2.5"
+elif sys.version_info[1] == 4:
+    python_dir = "python2.4"
+else:
+    print "python 2.4 and 2.5 are supported", sys.version_info
+    sys.exit(1)
+
+dest_path = "/usr/"+ arch_libdir + "/" + python_dir + \
+            "/site-packages/paramiko/" + dest
+
+#try again with lib itself.
+if not os.path.exists(dest_path):
+    arch_libdir = "lib"
+    dest_path = "/usr/"+ arch_libdir + "/" + python_dir + \
+                "/site-packages/paramiko/" + dest
+
+#try again for ubuntu.
+if not os.path.exists(dest_path):
+    arch_libdir = "share"
+    dest_path = "/usr/"+ arch_libdir + "/" + \
+                "/python-support/python-paramiko/paramiko/" + dest
+
+temp = dest_path + ".orig"
+
+if os.path.exists(temp):
+    print temp, "exists. Patch may be already applied"
+    sys.exit(0)
+
+shutil.copyfile(dest_path, temp)
+shutil.copyfile(src,dest_path)
+
+print src, dest_path
+
+print "Patch applied. Original file content in ", temp

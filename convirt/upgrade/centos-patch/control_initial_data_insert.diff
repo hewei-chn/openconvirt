@@ -1,0 +1,15 @@
+Index: src/convirt/web/convirt/convirt/websetup.py
+===================================================================
+--- src/convirt/web/convirt/convirt/websetup.py	(revision 4359)
++++ src/convirt/web/convirt/convirt/websetup.py	(working copy)
+@@ -130,6 +130,10 @@
+         updated_version(version)
+         return
+ 
++    #For solve 'drop foreign key' using constraint issue in CentOS, while Upgrade From ce2.0.2 to ee2.0.2 (ce to ee).
++    print "Skip insertion of seed data......."
++    return
++
+     entity_types=initialise_auth()
+     initialise_lookup_data()
+ 

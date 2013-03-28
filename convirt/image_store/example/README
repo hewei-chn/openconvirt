@@ -1,0 +1,20 @@
+vm_conf.template  
+-----------------
+VM configuration template file. Set all the values that most of the VMs provisioned by this image would have. ConVirt would allow you to make changes at the time of provisioning.
+
+image.conf
+----------
+Describes information and directives for the provisioning operation. The 
+information in this file is passed to the provisioning operation.
+
+provision.sh
+------------
+Shell script which is executed when a VM is getting provisioned. It uses 
+vm configuration information as well as image definitions.
+
+custom_scripts
+--------------
+Any custom scripts along with template files which would be invoked/used by 
+the provisioning script.
+
+

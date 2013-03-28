@@ -1,0 +1,210 @@
+#!/bin/bash
+
+ctl_dir=`dirname $0`
+base=`readlink -f $ctl_dir`
+CMD="$1"
+TG_ROOT="$2"
+
+PID_FILE="$base/paster.pid"
+if [ "`id -u`" == "0" ]; then 
+   mkdir -p /var/run/convirt
+   PID_FILE=/var/run/convirt/paster.pid
+fi
+echo ""
+echo "PID file is $PID_FILE"
+
+if [ "$VIRTUAL_ENV" == "" ]; then
+    if [ "$TG_ROOT" == "" ]; then
+       TG_ROOT="$base/tg2env"
+       if [ ! -e "$base/tg2env" ]; then
+          if [ -e "$base/../tg2env" ]; then 
+             TG_ROOT="$base/../tg2env"
+          fi
+       fi
+    fi
+    if [ -e $TG_ROOT/bin/activate ]; then
+       echo "Trying to source $TG_ROOT/bin/activate"
+       source $TG_ROOT/bin/activate
+       if [ "$VIRTUAL_ENV" == "" ]; then
+           echo "Could not activate virtualenv at $TG_ROOT"
+           exit 1
+       else
+           echo "virtualenv set to $VIRTUAL_ENV"
+       fi
+   else
+       echo "No virtualenv found, will try to use TG2 installed in the system"
+   fi
+fi
+
+if [ "$base" == "/usr/bin" ]; then
+    export CONVIRT_ROOT=/opt/convirt
+else
+    export CONVIRT_ROOT=$base
+fi
+
+export CONVIRT_SRC=$CONVIRT_ROOT/src
+
+# log file location 
+
+    # NOTE : The extraction of paster log specificed is bit complicated.
+    # for now using the root vs non-root user to determine the location
+    paster_file=""
+    # checks key has value
+    if [ -z $paster_file ]; then
+        if [ "`id -u`" == "0" ]; then 
+           mkdir -p /var/log/convirt
+           paster_file=/var/log/convirt/paster.log
+        else
+          paster_file=$base/paster.log
+        fi
+    else
+       paster_file=`readlink -f ${paster_file}`
+    fi
+    echo "Log file: ${paster_file}"
+
+echo ""
+convirt_status()
+{
+    if [ -e $PID_FILE ]; then
+        paster serve $CONVIRT_SRC/convirt/web/convirt/development.ini --status --pid-file $PID_FILE
+        r=$?
+        if [ $r == 0 ]; then 
+           return 0
+        else
+           return $r
+        fi
+    else
+        return 1
+    fi
+}
+
+if [ "$CMD" == "start" ]; then
+    convirt_status
+    if [ $? == 0 ]; then
+        echo "ConVirt is already running..."
+        echo "Please use 'convirt-ctl stop' to stop the existing ConVirt process"
+        exit 0
+    fi
+    ssh_default=$HOME"/.ssh/id_rsa"
+    ssh_var="ssh_file" #key in development.ini
+    file="$CONVIRT_SRC/convirt/web/convirt/development.ini"
+    ssh_file_det=$(grep ${ssh_var} ${file})
+
+    # take the value of ssh_file
+    ssh_file=${ssh_file_det##*=}
+
+    # checks key has value
+    if [ -z $ssh_file ]; then
+        echo "$ssh_file has no value."
+        ssh_file=$ssh_default
+    fi
+    #replacing the ~ with home directory
+    first_char=`echo $ssh_file | cut -c1`
+    if [  $first_char == "~" ]; then
+        ssh_file=`echo $ssh_file | cut -c 2-${#ssh_file}`
+        ssh_file=$HOME$ssh_file
+    fi
+
+    if [ -e $ssh_file ]; then
+        echo " " 
+        #echo "$ssh_file exists. "
+    else
+        echo "$ssh_file does not exist. Setting it to $ssh_default."
+        ssh_file=$ssh_default
+    fi
+
+    # checks file exists in the directory
+    if [ -e $ssh_file ]; then
+        echo "Using " $ssh_file
+        # checks ssh-agent set or not
+        if [ -z $SSH_AGENT_PID ]; then
+            eval `ssh-agent`
+        fi
+        ssh_res=$(ssh-add -l | grep ${ssh_file})
+        if [ $? == 1 ]; then
+            ssh-add $ssh_file
+#           echo "ssh-add -l ==" $(ssh-add -l)
+            if [ $? != 0 ]; then
+               echo "Failed to add identity to the agent. Key based Authentication may not work."
+            else
+               echo "ssh key added to agent."
+            fi
+        fi
+    else 
+        echo "$ssh_file not found, Key based Authentication will not be used."
+    fi
+
+    echo "Starting ConVirt using virtualenv : $VIRTUAL_ENV"
+    # Export the python path to pick up sitecustomize.py and set default encoding to utf-8 
+    export PYTHONPATH="${CONVIRT_SRC}/convirt/web/convirt:${PYTHONPATH}"
+
+    # print default encoding
+    python -c 'import sys; print "Default character encoding is",sys.getdefaultencoding()'
+
+    if [ "`id -u`" == "0" ]; then 
+      rm -rf /var/run/convirt/data/sessions
+    else
+      rm -rf $CONVIRT_SRC/convirt/web/convirt/data/sessions
+    fi
+    
+    paster serve $CONVIRT_SRC/convirt/web/convirt/development.ini --daemon --pid-file $PID_FILE --log-file ${paster_file}
+    if [ $? != 0 ]; then
+       echo "Error starting ConVirt. Please consult ${paster_file} for more details".
+       exit 1
+    fi
+    sleep 3
+    convirt_status
+    if [ $? == 0 ]; then
+       echo "ConVirt Started."
+       echo ""
+       exit 0
+    else
+       echo "Failed to start ConVirt. Please see ${paster_file} for details."
+       echo ""
+       exit 1
+    fi
+elif [ "$CMD" == "stop" ]; then
+    convirt_status       
+    ret=$?
+    if [ $ret == 0 ]; then
+        paster serve $CONVIRT_SRC/convirt/web/convirt/development.ini --stop-daemon --pid-file $PID_FILE
+        echo "ConVirt has been stopped."
+    else
+        echo "ConVirt is not running."
+        exit 0
+    fi
+elif [ "$CMD" == "status" ]; then
+     convirt_status
+     ret=$?
+     if [ $ret == 0 ]; then 
+        echo "ConVirt is running."
+     else
+        echo "Convirt is not running."
+     fi
+     exit $ret 
+    
+elif [ "$CMD" == "setup" ]; then
+    if [ -e $PID_FILE ]; then
+        echo "Cannot run setup while ConVirt is running..."
+        echo "Please use 'convirt-ctl stop' to stop the existing ConVirt process"
+        exit 1
+    fi
+    echo "Setting up ConVirt with : $VIRTUAL_ENV"
+    paster setup-app $CONVIRT_SRC/convirt/web/convirt/development.ini 
+    if [ $? != 0 ]; then
+       echo "Error setting up ConVirt. "
+       exit 1
+    fi
+    echo "Setting up translations..."
+    cd $CONVIRT_SRC/convirt/web/convirt/
+    python setup.py compile_catalog
+    cd convirt/i18n/
+    ./po-to-js.pl
+    echo "ConVirt Setup Done..."
+else
+    echo "usage: convirt-ctl <cmd> [<tg2env directory>]"
+    echo "       where <cmd> is one of [start, stop, status, setup]"
+    exit 1
+fi
+
+

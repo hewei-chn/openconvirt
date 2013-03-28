@@ -1,0 +1,59 @@
+#!/bin/sh
+# 
+# This script patches a bug in Xen 3.0.x's XMLRPCServer whereby
+# listening on local-only ports is hardcoded (thus xend-config
+# options end up being ignored)
+#
+#  Author - Haphazard
+#  Copyright (c) 2007 Convirture Corporation
+# 
+#
+# This software is subject to the GNU Lesser General Public License (LGPL)
+# available at: http://www.fsf.org/licensing/licenses/lgpl.txt
+#
+
+
+
+if [ "$1" !=  "" ]; then
+    PATCHFILE="$1"
+else
+    echo "USAGE: patch_XMLRPCSERVER patchfile [targetfile]"
+    exit 1
+fi
+
+
+LIB_DIR="/usr/lib64"
+if [ -e $LIB_DIR ]; then
+   LIB_DIR="/usr/lib64"
+else
+   LIB_DIR="/usr/lib"
+fi
+
+PYTHON_DIR=`ls -d $LIB_DIR/python2*`
+if [ ! -e $PYTHON_DIR ]; then
+   echo "An definitive python directory could not be found"
+   echo "Please fully specify XMLRPCServer.py location at the command line"
+   exit 1
+fi
+
+PATCH_TARGET="$PYTHON_DIR/site-packages/xen/xend/server/XMLRPCServer.py"
+if [ "$2" !=  "" ]; then
+    PATCH_TARGET="$2"
+fi
+
+echo "Patching: $PATCH_TARGET"
+patch -bN $PATCH_TARGET $PATCHFILE
+r=$?
+if [ $r -ne 0 ]; then
+   echo "Patch attempt failed. exit code=$r"
+   echo "    1) check if patch has already been applied."
+   echo "    2) otherwise, patch manually"
+   exit 1
+fi
+
+echo "... Patch successfull"
+
+exit 0 
+
+
+

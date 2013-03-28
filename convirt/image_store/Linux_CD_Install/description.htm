@@ -1,0 +1,61 @@
+<body>
+<span style="font-size: 200%; font-family: serif; color:#0000FF;text-align: center">
+Linux CD Install
+</span>
+<br/>
+<span style="font-size: 100%; font-family: serif; color:#0000FF;text-align: center">
+Linux Installation from CD/DVD (unmodified)
+</span>
+
+<br/><br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Type:
+</span>
+ConVirt Provisionable Image
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Version:
+</span>
+1.0
+
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Author:
+</span>
+The ConVirt Team
+
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Requirements:
+</span>
+ConVirt v0.8+,  Xen v3.0.4+ OR KVM-70+, Hardware Virtualization (Intel VT/AMD SVM) enabled  processor, Xen-enabled Linux host, Bootable Linux CD/DVD.
+
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Description:
+</span>
+This image creates a 10G virtual disk (vbd) for use as the primary hard drive. The VM boots from a bootable Linux CD/DVD which, in turn, should kick off the distribution specific installation routine and deploy the OS on the primary hard drive.
+
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Instructions:
+</span>
+<ol>
+ 	<li> Check the default provisioning parameters and alter them to suit your environment if necessary.</li>
+	<li><span style="color:red"> (Important)</span> The default location for the CD/DVD drive is set to <span style="font-weight:bold">/dev/cdrom</span>. Alter this to match your environment if necessary.</li>
+	<li> Provision the VM configuration normally using ConVirt.</li>
+	<li> Start the Virtual Machine (VM) and complete the installation.</li>
+	<li> <span style="color:red"> (Important)</span> Once the installation is complete, use the "Set boot Device" context menu to change the boot device to the <span style="font-weight:bold"> Disk</span>. (This ensures that the VM boots from disk as opposed to CD on the next restart)</li>
+	<li> Restart the VM.</li>
+</ol>
+
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Contact:
+</span>
+Visit http://www.convirture.com. We can be reached there via our user forums or email.
+</body>

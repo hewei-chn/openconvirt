@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+#   ConVirt   -  Copyright (c) 2008 Convirture Corp.
+#   ======
+#
+# ConVirt is a Virtualization management tool with a graphical user
+# interface that allows for performing the standard set of VM operations
+# (start, stop, pause, kill, shutdown, reboot, snapshot, etc...). It
+# also attempts to simplify various aspects of VM lifecycle management.
+#
+#
+# This software is subject to the GNU General Public License, Version 2 (GPLv2)
+# and for details, please consult it at:
+#
+#    http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+# 
+#
+# author : Jd <jd_jedi@users.sourceforge.net>
+#
+
+# Distribution and version specific code can go here.
+# Assume that common functions are included
+# Assme the DIST and the VER to be set here.
+
+
+# Fedora functions should work 
+source $common_scripts/Fedora_functions
+
+
+get_xen_userspace_ver()
+{
+    v_p_v=$1
+    
+    echo "3.0.3"
+    return 0
+}
+
+#install convirt tool dependencies
+install_dependencies(){
+   cd /etc/yum.repos.d
+   if [ "${VER%.*}" == "6" ]; then
+      wget --no-cache http://www.convirture.com/repos/definitions/rhel/6.x/convirt.repo
+   else
+      wget --no-cache http://www.convirture.com/repos/definitions/rhel/5.x/convirt.repo
+   fi
+   $SUDO yum -y install dnsmasq tunctl tcp_wrappers socat expect pexpect 
+}
+
+##seed_config()
+##{
+##
+##    seed_default_config
+##    if [ "$?" != "0" ]; then
+##	echo "Error creating default config."
+##	return 1
+##    fi
+##
+##    adjust_xen_api_version "use_3_0_api"
+##    if [ "$?" != "0" ]; then
+##	return 1
+##    fi
+##   
+##}

@@ -1,0 +1,4 @@
+95c95
+<             self.server = TCPXMLRPCServer(("localhost", 8005), logRequests=False)
+---
+>             self.server = TCPXMLRPCServer(("", 8006), logRequests=False)

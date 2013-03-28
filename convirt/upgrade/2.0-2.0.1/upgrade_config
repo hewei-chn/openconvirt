@@ -1,0 +1,65 @@
+#!/bin/bash
+
+upgrade_config()
+{
+  upgrade_base=$1
+  dev_ini=$2
+
+  echo "Upgrading $dev_ini from 2.0-2.0.1"
+  sed  -i "
+/services.execution.num_threads/ {s/15/30/}
+/sqlalchemy.max_overflow/ {s/^#//}
+/TaskPaneLimit/{s/30/7/}
+/keys/{s/console, rotating/console, rotating,paster/}
+/format/{s/\%(asctime)s,\%(msecs)03d \%(levelname)-5.5s \[\%(name)s\] \%(message)s/\%(asctime)s,\%(msecs)03d \%(levelname)-5.5s \[\%(name)s\] \[\%(filename)s\]\:\%(lineno)d \%(message)s/}
+/datefmt/{s/ \%H\:\%M:\%S/\%Y-\%m-\%d \%H\:\%M\:\%S/}
+
+/^\[loggers\]/ { i\
+# 2.0.1 additions\n\
+update_from_version=2.0\n\
+email_from = admin@yourdomain.com\n\
+server_protocol=http\n\
+node_ports_cache_clear_time = 30\n\
+user_config = %(here)s/user_config\n\n\
+vm_disk_types=['file','tap:aio','tap:qcow','tap:vmdk']\n\
+NODE_LIST_LIMIT=50\n\
+CUSTOM_SEARCH_LIMIT=200\n\
+RECOVER_TIME = 1440\n\n\n\
+vnc_applet_param_height=0\n\
+vnc_applet_param_width=0\n\
+vnc_applet_param_new_window=Yes\n\
+vnc_applet_param_show_controls=Yes\n\
+vnc_applet_param_encoding=Hextile\n\
+vnc_applet_param_restricted_colors=No\n\
+vnc_applet_param_offer_relogin=No\n\
+MAX_CACHE_SIZE=200\n\n\
+#in minutes\n\
+CACHE_TIME=5\n\
+use_bash_timeout=True\n\n\
+#in seconds\n\
+bash_default_timeout = 60\n\
+template_timeout=300\n\
+template_timeout=300\n\
+max_ping_servers=2\n\
+max_ping_workers=2\n\
+completion_time=2\n\n\
+#remote system connection commands\n\
+vnc=vncviewer \$IP\:\$PORT\n\
+tight_vnc=vncviewer \$IP\:\$PORT\n\
+task_panel_row_limit=200\n\
+notifications_row_limit=200\n\
+VM_CONF_DIR=/var/cache/convirt/vm_configs\n\n\n\
+[handler_paster]\n\
+class = handlers.RotatingFileHandler\n\
+args = ('paster.log', 'a', 1000000, 5)\n\
+level = NOTSET\n\
+formatter = generic\n\
+
+}
+
+" $dev_ini
+  if [ $? != 0 ]; then
+     return 1
+  fi
+  return 0
+}

@@ -1,0 +1,65 @@
+<body>
+<span style="font-size: 200%; font-family: serif; color:#0000FF;text-align: center">
+Central Provisioning
+</span>
+<br/>
+<span style="font-size: 100%; font-family: serif; color:#0000FF;text-align: center">
+Customisable Template for Centralised Provisioning Schemes
+</span>
+
+<br/><br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Type:
+</span>
+Provisioning Template
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Version:
+</span>
+1.0
+
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Author:
+</span>
+The ConVirt Team
+
+<br/>
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Description:
+</span>
+A partially complete image intended for use as a template for expressing centralised provisioning schemes.
+A central provisioning scheme must have the following attributes:
+<ol>
+  <li>Shared storage for all GuestOS disks</li>
+  <li>Identical storage mountpoints on all hosts (e.g. /mnt/guest_storage)</li>
+  <li>Centrally accessable installation media (if appropriate)</li>
+</ol>
+
+
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Instructions:
+</span>
+This template must be customised before any attempt to provision is made. Launch ConVirt as root user, edit and save the template to suit your environment before use.
+<br/>Minimally, the following values must be set:
+<ol>
+	<li>KICKSTART. The network location of your kickstart file. Set to blank if you don't use one. </li>
+	<li>VM_DISK_MOUNTPOINT. The standard location on the hosts (Dom0) where the directory containing GuestOS (DomU) disks is mounted. This should be the same for all hosts participating in the provisioning scheme.</li>
+	<li>kernel_src/ramdisck_src. The location of installation media. Set these to the location of the xen kernel and ramdisk you wish to use for launching Guests. If you use pre-prepared disk images, set these to blank and select the bootloader option on the Virtual Machine tab. </li>
+</ol>
+
+<span style="color:red"> (Important)</span> If you use installations to build your Guests (as opposed to pre-configured disk images), once the installation is complete, edit the new VM's configuration and change the kernel and ramdisk entries to <span style='font-style: italic'> EITHER </span> point to a local copy of a xen paravirtualised 
+kernel and associated ramdisk. <span style='font-style: italic'> OR </span> set the bootloader entry <span style='font-style: normal; font-size:85%'>
+(typically /usr/bin/pygrub)</span> Then restart the Virtual Machine.
+
+<br/>
+<br/>
+<span style="font-size: 125%; font-family: serif; color:#0000FF;text-align: left">
+Contact:
+</span>
+Visit http://www.convirture.com. We can be reached there via our user forums or email.
+</body>

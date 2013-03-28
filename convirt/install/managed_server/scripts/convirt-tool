@@ -1,0 +1,456 @@
+#!/bin/bash
+#
+#   ConVirt   -  Copyright (c) 2008 Convirture Corp.
+#   ======
+#
+# ConVirt is a Virtualization management tool with a graphical user
+# interface that allows for performing the standard set of VM operations
+# (start, stop, pause, kill, shutdown, reboot, snapshot, etc...). It
+# also attempts to simplify various aspects of VM lifecycle management.
+#
+#
+# This software is subject to the GNU General Public License, Version 2 (GPLv2)
+# and for details, please consult it at:
+#
+#    http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+#
+#
+# author : Jd <jd_jedi@users.sourceforge.net>
+#
+
+# Script to do required configuration for the managed server node.
+#
+# Detect distribution
+# -- Get distro name, distro version, distro major, distro minor, architecture
+#
+# Detect virtualization platform
+# -- XEN or KVM
+#
+# For Xen
+#   -- configure xend to listen on all port
+#   -- open corresponding firewall port for 8005/8006 and 8002
+#   -- detect bridge name and put it in well known location
+#   -- make sure that on reboot, firewall rules are preserved
+#
+# For KVM (not implemented yet)
+#  -- do bridge setup
+#  -- put in the /etc/qemu-if script
+#  -- put the bridge name at well known location
+#  -- check socat is installed.
+#
+
+
+# TODO : Allow user to specify the distro and virtualization platform
+#        xen 3.3 ?
+#        kvm implementation
+#
+
+# TODO : add setup_bridge as separate command. It is bit intertwined with
+#        xend config right now.
+#
+
+
+prg_name=`readlink -f $0`
+base=`dirname $prg_name`
+if [ "${base}" == "" ]; then
+    base="."
+fi
+common_scripts=${base}/../../../common/scripts
+
+usage()
+{
+    cat <<EOF
+    Provides 2 steps to install dependencies and setup
+    1) $0 install_dependencies
+          This will install dependencies like ssh,socat,expect etc.
+    2) $0 [switch [switch ..]] setup
+          Switch option is not mandatory, default is --all.
+
+          Switch can be from one of the following:
+          --detect_only       : only detect distribution and virtualization platform,
+                                Do not make changes.
+          --firewall          : configure firewall.
+          --xen_config        : configure xend server.
+          --xen_ssl           : configure xend server in SSL mode.
+          --bridge            : setup bridge for each physical interface.
+          --nw_service        : setup network service during system boot.
+          --all               : all required setup for KVM or Xen.
+          --skip_firewall     : Skip firewall related changes
+          --skip_xen_config   : Skip xend server configuration
+          --skip_bridge       : Skip bridge related changes
+          --skip_nw_service   : Skip network service setup during boot
+          --use_native_bridge : Use OS specific bridge setup (Recommended for Xen on SLES)
+          --dom0_mem          : Sets the memory of Domain-0(in MB)
+          -h                  : help
+EOF
+    exit 1
+
+}
+
+# parse the command line parameters
+new_opts=`getopt -n$0 -u -a --longoptions="all,xen_config,xen_ssl,detect_only,firewall,bridge,nw_service,
+skip_firewall,skip_xen_config,skip_bridge,skip_nw_service,use_native_bridge,dom0_mem:" "h" "$@"` || usage
+set -- `echo $new_opts`
+if [ "$2" == "setup" ]; then
+   all="true"
+fi
+while [ $# -gt 0 ]
+do
+    case "$1" in
+       --all)               c_all="true";;
+       --xen_config)        xen_config="true";;
+       --xen_ssl)           c_xen_ssl="true";;
+       --firewall)          fw_changes="true";;
+       --detect_only)       detect_only="true";;
+       --bridge)            setup_bridge="true";;
+       --nw_service)        setup_nw_svc="true";;
+       --skip_firewall)     skip_firewall="true";;
+       --skip_xen_config)   skip_xen_config="true";;
+       --skip_bridge)       skip_bridge="true";;
+       --skip_nw_service)   skip_nw_service="true";;
+       --use_native_bridge) use_native_bridge="true";;
+       --dom0_mem)          shift;dom0_mem=$1;;
+       -h)        usage;;
+       --)        shift;break;;
+       -*)        usage;;
+       *)         usage;;
+    esac
+    shift
+done
+
+if [ $# != 1 ]; then
+   usage
+fi
+if [ "$1" != "setup" ] && [ "$1" != "install_dependencies" ];  then
+   usage
+fi
+
+#echo "detect_only=$detect_only"
+#echo "xen_skip_config=$xen_skip_config"
+#echo "xen_ssl=$c_xen_ssl"
+#echo "skip_setup_bridge=$skip_setup_bridge"
+
+# We need to be root to do the setup.
+if [ `id -u` != 0 ]; then
+   echo "Must be root to execute $0 script"
+   exit 1
+fi
+
+# detect distro
+source $common_scripts/utils
+source $common_scripts/functions
+source $common_scripts/nw_functions
+detect_distro
+
+if [ "$?" != "0" ]; then
+   echo "Error detecting Linux distribution.Exiting."
+   exit 1
+fi
+
+# dump information
+#echo "DISTRO ${DIST}"
+#echo "VER ${VER}"
+#echo "CODENAME ${CODE_NAME}"
+#echo "KERNEL ${KERNEL}"
+#echo "ARCH ${ARCH}"
+
+# include the distro specific file if it exists.
+distro_functions=$common_scripts/${DIST}_functions
+if [ -r $distro_functions ]; then
+    echo "Info: Sourcing $distro_functions"
+    source $distro_functions
+else
+   echo "Info: $distro_functions not found."
+fi
+
+
+#detect virtualization platform
+detect_v_platform
+if [ "$?" != "0" ]; then
+   echo "Error detecting virtualization platform."
+   echo "For Xen, please make sure that you reboot in to a Xen kernel and Xen server is running, while for KVM, the kvm modules are correctly loaded."
+   exit 1
+fi
+
+echo "Virtualization platform $v_platform Version $v_platform_ver "
+OS_NAME="${DIST} ${VER}"
+OS_BASE_NAME=`echo $OS_NAME | cut -d\. -f1`
+if [ "$OS_BASE_NAME" != "RedHat 5" ] && [ "$OS_BASE_NAME" != "CentOS 5" ] && [ "$OS_BASE_NAME" != "RedHat 6" ] && [ "$OS_BASE_NAME" != "CentOS 6" ] &&
+[ "$OS_BASE_NAME" != "Ubuntu 8" ] && [ "$OS_BASE_NAME" != "Ubuntu 9" ] &&
+[ "$OS_BASE_NAME" != "Ubuntu 10" ] && [ "$OS_BASE_NAME" != "Ubuntu 11" ] && [ "$OS_BASE_NAME" != "Ubuntu 12" ]&& [ "$OS_BASE_NAME" != "SLES 10" ] &&
+[ "$OS_BASE_NAME" != "SLES 11" ] && [ "$OS_BASE_NAME" != "Debian 5" ] ; then
+   echo "Do not know how to install dependencies for $OS_NAME platform."
+   exit 0
+fi
+
+if [ "$1" == "install_dependencies" ]; then
+   install_dependencies
+   exit 0
+else
+   # dump information
+   echo "DISTRO ${DIST}"
+   echo "VER ${VER}"
+   echo "CODENAME ${CODE_NAME}"
+   echo "KERNEL ${KERNEL}"
+   echo "ARCH ${ARCH}"
+fi
+if [ "$detect_only" == "true" ]; then
+   exit 0
+fi
+
+if [ "$skip_firewall" == "true" ] || [ "$skip_bridge" == "true" ] || [ "$skip_nw_service" == "true" ] ||[ "$skip_xen_config" == "true" ] ; then
+    all="true"
+fi
+
+if [ "$xen_config" == "true" ] || [ "$c_xen_ssl" == "true" ] || [ "$fw_changes" == "true" ] ||
+[ "$setup_bridge" == "true" ] || [ "$setup_nw_svc" == "true" ] || [ "$dom0_mem" != "" ] ; then
+    all="false"
+fi
+
+# If explicitly specified then treat it as true
+if [ "$c_all" == "true" ]; then
+   all="true"
+fi
+
+if [ "$all" == "true" ]; then
+    setup_nw_svc="true"
+    xen_config="true"
+    xen_ssl="false"
+    setup_bridge="true"
+    fw_changes="true"
+fi
+
+# fix the case when xen_ssl used with all
+if [ "$c_xen_ssl" == "true" ]; then 
+    xen_config="false"
+    xen_ssl="true"
+fi
+ 
+# Apply the negation now
+if [ "$skip_bridge" == "true" ]; then
+   setup_bridge="false"
+fi
+
+if [ "$skip_firewall" == "true" ]; then
+   fw_changes="false"
+fi
+
+
+if [ "$skip_nw_service" == "true" ]; then
+   setup_nw_svc="false"
+fi
+
+if [ "$skip_xen_config" == "true" ]; then
+   xen_config="false"
+fi
+
+if [ "$setup_nw_svc" == "true" ]; then
+     cp $base/convirt-nw /etc/init.d/convirt-nw
+     chmod +x /etc/init.d/convirt-nw
+     setup_nw_svc
+fi
+
+bridge_candidates=""
+bridge_candidates_count=0
+if [ "$setup_bridge" == "true" ]; then 
+   bridge_candidates=`get_candidates_for_bridging`
+   bridge_candidates_count=`get_list_count $bridge_candidates`
+fi
+
+if [ $bridge_candidates_count == 0 ]; then
+   echo "No suitable candidates found for bridging. Will skip bridge setup"
+   setup_bridge="false"
+fi
+
+# Xen Setup (may be moved in to functions.)
+if [ "$v_platform" == "XEN" ]; then
+    echo "Doing xen setup "
+
+
+    # configure xen using config-xen scripts
+    ver=`get_xen_userspace_ver $v_platform_ver`
+    if [ "$?" == "0" ]; then
+	x_u=$ver
+	echo "Xen userspace version : $x_u"
+        # For SLES use the native bridging similar to KVM
+        if [ "$DIST" == "SLES" ]; then
+           echo "For SLES switching to native bridging"
+           use_native_bridge="true"
+        fi
+        if [ "$use_native_bridge" == "true" ] && [ "$setup_bridge" = "true" ]; then
+           setup_public_bridge_for_kvm
+           setup_bridge="false"
+           setup_multi_bridge="false"
+        fi
+        if [ "$setup_bridge" == "true" ] || [ "$xen_config" == "true" ] || [ "$xen_ssl" == "true" ]; then
+	    s_dir=$base/xen-${x_u:0:3} # use only major and minor version.
+	    echo "s_dir = $s_dir"
+	    s_name="configure-xend.sh"
+	    if [ -d $s_dir ]; then
+		echo $s_dir exists.
+		if [ -x $s_dir/$s_name ]; then
+                    if [ "$xen_ssl" == "true" ] || [ "${x_u:0:1}" == "4" ]; then
+			ssl_opt="SSL"
+		    fi
+                    setup_multi_bridge="false"
+                    if [ "${setup_bridge}" == "true" ]; then
+                      # num interfaces is > 1 setup multi bridge
+                      if [ `get_num_physical_interfaces` -lt 2 ]; then
+                         setup_multi_bridge="false"
+                      else
+                         echo "switching setup_multi_bridge to true"
+                         setup_multi_bridge="true"
+                      fi
+                    fi
+                    #create custom script to setup up a public bridge for 
+                    #each physical interface that is not bridged or bounded
+                    if [ "${setup_bridge}" == "true" ] && [ "${setup_multi_bridge}" == "true" ]; then
+                      echo "Creating xen custom script."
+                      create_xen_custom_script $x_u
+                    fi
+		    $s_dir/$s_name "${x_u}" "${ssl_opt}" "${setup_multi_bridge}" "${setup_bridge}"
+		    if [ "$?" != "0" ]; then
+			echo "Error executing $s_dir/$s_name"
+			exit 1
+		    else
+			echo "$s_dir/$s_name successful."
+		    fi
+		fi
+            else
+               echo "$s_dir does not exist. Can not config xen."
+               exit 1
+	    fi
+         else
+           echo "Skiping xend_config"
+	 fi
+    else
+	echo "Error determining xen version required for xend-config.sh."
+	exit 1
+    fi
+
+    if [ "$dom0_mem" != "" ]; then
+       echo "Setting dom0 Memory to $dom0_mem"
+       xm mem-set 0 $dom0_mem
+       mb="MB"
+       dom0_mem=$dom0_mem$mb
+       echo "Changing grub file to set dom0_mem at next boot." 
+       if  [ -e /boot/grub/grub.conf ]; then
+           sed -i.`date +"%Y%m%d.%H%M%S"` '
+           /^[\t ]*kernel[\t ].*xen*/ {s/ dom0_mem=.*//;s/$/ dom0_mem='$dom0_mem'/}' /boot/grub/grub.conf
+       elif [ -e /boot/grub/menu.lst ]; then
+           sed -i.`date +"%Y%m%d.%H%M%S"` '
+           /^[\t ]*kernel[\t ].*xen*/ {s/ dom0_mem=.*//;s/$/ dom0_mem='$dom0_mem'/}' /boot/grub/menu.lst
+       fi 
+    fi
+
+    # Detect bridge name
+    if [ "$use_native_bridge" == "true" ]; then
+       bridge=`get_default_bridge`
+    else
+       bridge=`get_xen_bridge_name`
+    fi
+    if [ "$?" != "0" ]; then
+	echo "Error ($bridge). Default bridge name will not be set"
+    else
+	br_name=$bridge
+    fi
+    echo "BRIDGE NAME=$br_name"
+
+
+    # open up fire wall for related ports
+    if [ "$fw_changes" == "true" ]; then
+	if [ "$DIST" == "SLES" ]; then
+	    open_ports 8002 8006 ssh
+	else
+	    open_ports 8002 8006 22
+	fi
+	if [ "$?" != "0" ]; then
+	    echo "Error opening firewall ports. You may experience connection problems via convirt"
+	fi
+    fi
+
+
+    # for some platforms we need to seed the conf
+    #seed_config
+    #if [ "$?" != "0" ]; then
+    #   echo "Error seeding convirt.conf"
+    #   exit 1
+    #fi
+
+    # fix Debian problem.. :probably should introduce post fix up and
+    # pre fixup functions.
+    if [ -L /usr/lib/xen-default ]; then
+	if [ ! -L /usr/lib/xen ]; then
+	    ln -s `readlink -f /usr/lib/xen-default` /usr/lib/xen
+	fi
+    fi
+
+elif [ "$v_platform" == "KVM" ]; then
+    # make sure socat,tunctl and brctl are installed.
+
+    # Setup up bridge for each network interface in persistent fashion
+    if [ "$setup_bridge" == "true" ]; then
+       setup_public_bridge_for_kvm
+    fi
+
+    # setup scripts for all bridges either configured by us or not.
+    setup_bridge_scripts_for_kvm
+    if [ $? != 0 ]; then
+       echo "WARNING : Error setting bridge scripts. You might have trouble with Virtual Machine networking."
+    fi
+
+    # Update sysctl to skip bridge traffic from firewall
+    update_sysctl
+    if [ "$?" != "0" ]; then
+       echo "WARNING : Error setting required params in /etc/sysctl.conf. You might have issues with VM connectivity."
+    fi 
+
+    # Detect bridge name
+    bridge=`get_default_bridge`
+    if [ $? != 0 ]; then
+	echo "Error ($bridge). Default bridge name will not be set"
+	echo "NOTE : To allow Virtual Machines to connect to the host network, please do public bridge setup as recommended by KVM platform documentation."
+    else
+	br_name=$bridge
+    fi
+    echo "BRIDGE NAME=$br_name"
+
+    # open up fire wall for migration
+    if [ "$fw_changes" == "true" ]; then
+	open_ports 8002:8012
+	if [ "$?" != "0" ]; then
+	    echo "Error opening firewall port 8002. You may experience during live migration"
+	fi
+    fi
+
+else
+   echo "Error : $0 : Dont know how to setup $v_platform."
+   exit 1
+fi
+
+
+
+
+# dump discoverd information and brdige name in a well known location
+# Also, this will act as a marker that the setup is done.
+# save_discoved_info
+mkdir -p /var/cache/convirt
+cat <<EOF > /var/cache/convirt/server_info
+DISTRO="$DIST"
+CODE_NAME="$CODE_NAME"
+VER="$VER"
+KERNEL="$KERNEL"
+ARCH="$ARCH"
+V_PLATFORM="$v_platform"
+V_PLATFORM_VER="$v_platform_ver"
+DEFAULT_BRIDGE="$br_name"
+EOF
+if [ "$?" != 0 ]; then
+   echo "Failed to save discoverd information."
+   exit 1
+fi
+
+echo "Setup successful."
+
+
+

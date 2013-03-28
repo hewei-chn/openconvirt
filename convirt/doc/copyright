@@ -1,0 +1,20 @@
+This package is Copyright (C) 2010,2011 Convirture Corporation
+
+It is licensed under the GNU General Public License (v2) which can be
+found under doc directory.
+
+For more information about ConVirt, please visit:
+    http://www.convirture.com/
+
+Author: ConVirt Team
+
+Other software included as a part of this package along with their licenses
+
+   EXT JS 2.2.1    : Dual license GPL and Commercial License
+   jQuery 1.2.3    : Dual License MIT and GPL License 
+   Flot, PieFlot   : MIT License
+   TightVNC Applet : GPL License
+   HTML-Parser-3.64: Perl License
+   HTML-Tagset-3.20: Perl License
+
+

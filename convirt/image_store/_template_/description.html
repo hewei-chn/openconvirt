@@ -1,0 +1,100 @@
+<body>
+<span style="font-size: 200%; font-family: serif; color:#0000FF;text-align: center">
+<center>Central Provisioning</center>
+</span>
+<br/>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: center">
+<center>Customisable Template for Centralised Provisioning Schemes</center>
+</span>
+
+<br/><br/>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Type:
+</span>
+<font color="black" size="2">
+Provisioning Template
+</font>
+<br/><br>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Version:
+</span>
+<font color="black" size="2">
+2.0
+</font>
+
+<br/><br>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Author:
+</span>
+<font color="black" size="2">
+The ConVirt Team
+</font>
+<br/>
+<br/>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Description:
+</span>
+<font color="black" size="2">
+A partially complete template intended for use as a template for expressing centralised provisioning schemes.
+A central provisioning scheme must have the following attributes:
+
+<table>
+<tr>
+<td valign="top">1.</td>
+<td>Shared storage for all GuestOS disks</td>
+<tr>
+<tr>
+<td valign="top">2.</td>
+<td>Identical storage mountpoints on all hosts (e.g. /mnt/guest_storage)</td>
+<tr>
+<tr>
+<td valign="top">3.</td>
+<td>Centrally accessable installation media (if appropriate)</td>
+<tr>
+</table>
+
+</font>
+
+<br/>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Instructions:
+</span>
+<font color="black" size="2">
+This template must be customised before any attempt to provision is made. Launch ConVirt as root user, edit and save the template to suit your environment before use.
+<br/>Minimally, the following values must be set:
+
+
+<table cellspacing="6">
+<tr>
+<td valign="top">1.</td>
+<td>
+KICKSTART. The network location of your kickstart file. Set to blank if you don't use one. </td>
+</tr>
+<tr>
+<td valign="top">2.</td>
+<td>
+VM_DISK_MOUNTPOINT. The standard location on the hosts (Dom0) where the directory containing GuestOS (DomU) disks is mounted. This should be the same for all hosts participating in the provisioning scheme. </td>
+</tr>
+<tr>
+<td valign="top">3.</td>
+<td>
+kernel_src/ramdisck_src. The location of installation media. Set these to the location of the xen kernel and ramdisk you wish to use for launching Guests. If you use pre-prepared disk templates, set these to blank and select the bootloader option on the Virtual Machine tab.</td>
+</tr>
+</table>
+
+<span style="color:red"> (Important)</span> If you use installations to build your Guests (as opposed to pre-configured disk templates), once the installation is complete, edit the new VM's configuration and change the kernel and ramdisk entries to <span style='font-style: italic'> EITHER </span> point to a local copy of a xen paravirtualised
+kernel and associated ramdisk. <span style='font-style: italic'> OR </span> set the bootloader entry <span style='font-style: normal; font-size:85%'>
+(typically /usr/bin/pygrub)</span>
+Then restart the Virtual Machine. 
+
+</font>
+
+<br/>
+<br/>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Contact:
+</span>
+<font color="black" size="2">
+Visit <a href="http://www.convirture.com" target="_blank">ConVirt</a> . We can be reached there via our user forums or email.
+</font>
+</body>

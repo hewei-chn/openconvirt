@@ -1,0 +1,10 @@
+#  Copyright (c) 2007 Convirture Corporation
+
+Instructions
+------------
+- run "configure-xend.sh <xen_version>" as root. 3.0.3 and 3.0.4 xen version are supported.
+- once the script concludes, your xen environment
+will be fully patched and configured for centralised 
+management using ConVirt.
+
+Please report bugs/feedback at http://www.convirture.com.

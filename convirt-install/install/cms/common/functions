@@ -1,0 +1,347 @@
+#!/bin/bash
+#
+#   ConVirt   -  Copyright (c) 2008 Convirture Corp.
+#   ======
+#
+# ConVirt is a Virtualization management tool with a graphical user
+# interface that allows for performing the standard set of VM operations
+# (start, stop, pause, kill, shutdown, reboot, snapshot, etc...). It
+# also attempts to simplify various aspects of VM lifecycle management.
+#
+#
+# This software is subject to the GNU General Public License, Version 2 (GPLv2)
+# and for details, please consult it at:
+#
+#    http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+# 
+#
+# author : Jd <jd_jedi@users.sourceforge.net>
+#
+
+SUDO=sudo
+
+install_cms_prereq_packages()
+{
+   echo "Probably installation not supported for your platform."
+   echo "Visit Convirture at http://www.convirture.com for more details."
+   exit 1
+
+}
+
+install_ez_setup()
+{
+   $SUDO wget http://peak.telecommunity.com/dist/ez_setup.py
+   $SUDO python ez_setup.py
+}
+
+install_virtualenv()
+{
+   $SUDO easy_install virtualenv
+}
+
+install_perl_modules()
+{
+   T_DIR=`mktemp -d`
+   tar -xzf $base/HTML-Tagset-3.20.tar.gz -C $T_DIR
+   (cd $T_DIR/HTML-Tagset-3.20; perl Makefile.PL ; make; $SUDO make install)
+   if [ "$?" != 0 ]; then
+      ERR_CODE=$?
+      echo "Error installing HTML-Tagset perl module."
+      rm -rf $T_DIR
+      return $ERR_CODE
+   fi
+  
+   tar -xzf $base/HTML-Parser-3.64.tar.gz -C $T_DIR
+   (cd $T_DIR/HTML-Parser-3.64; perl Makefile.PL ; make; $SUDO make install)
+   if [ "$?" != 0 ]; then
+      ERR_CODE=$?
+      echo "Error installing HTML-Parser perl module."
+      rm -rf $T_DIR
+      return $ERR_CODE
+   fi
+   rm -rf $T_DIR
+}
+
+#additional setup
+additional_setup_mysql()
+{
+    echo "No additional setup required for mysql."
+}
+
+
+# Make the innodb default engine
+set_default_to_innodb()
+{
+    echo "Calling base set_defalt_to_innodb which is empty."
+}
+
+restart_mysql()
+{
+   $SUDO /etc/init.d/mysql restart
+}
+
+start_mysql()
+{
+   $SUDO /etc/init.d/mysql start
+}
+
+status_mysql()
+{
+   $SUDO /etc/init.d/mysql status
+}
+
+
+# create TG2 environment
+create_tg2env()
+{
+   virtualenv $VIRTUAL_ENV_DIR
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "ERROR: creating virtualenv at $VIRTUAL_ENV_DIR"
+      return $ret
+   fi
+
+   source $VIRTUAL_ENV_DIR/bin/activate
+   easy_install extremes
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "ERROR: installing extremes."
+      deactivate
+      return $ret
+   fi
+
+   #easy_install pysqlite
+   easy_install mysql-python
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "ERROR: installing mysql-python."
+      deactivate
+      return $ret
+   fi
+
+   easy_install -i http://www.turbogears.org/2.0/downloads/2.0.3/index tg.devtools
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "ERROR: installing TG2 (2.0.3)."
+      deactivate
+      return $ret
+   fi
+
+   fix_xen_in_tg2env
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "ERROR: fixing xen in tg2env."
+      deactivate
+      return $ret
+   fi
+
+   # Kludge for Beaker future import problem
+   easy_install "Beaker >= 1.4"
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "ERROR: installing Beaker >= 1.4"
+      deactivate
+      return $ret
+   fi
+
+   f_names=`ls $VIRTUAL_ENV_DIR/lib/python2.4/site-packages/Beaker-*py2.4.egg/beaker/ext/google.py`
+   for f_name in $f_names
+   do
+      if [ -e $f_name ]; then
+         echo "Fixing $f_name for __future__ import problem."
+         sed -i.bak -e 's/^from __future__/#from __future__/g' $f_name
+      else
+         echo "No need to fix beaker google.py."
+      fi
+   done
+
+   deactivate
+}
+
+fix_xen_in_tg2env()
+{
+    echo "No need to fix xen in tg2env."
+}
+
+fix_encoding_to_utf8()
+{
+    if [ "$VIRTUAL_ENV_DIR" != "" ]; then 
+       find $VIRTUAL_ENV_DIR -name "site.py" -exec sed -i.bak -e 's/encoding = "ascii"/encoding = "utf-8"/' {} \;
+    else
+       echo "VIRTUAL_ENV_DIR not set. Can not find site.py"
+       return 1
+    fi
+    return 0
+}
+
+generate_cms_id()
+{
+    if [ "`id -u`" == "0" ]; then
+       mkdir -p /var/lib/convirt/identity
+       ID_FILE=/var/lib/convirt/identity/cms_id_rsa 
+    else
+       ID_FILE=~/.ssh/cms_id_rsa
+    fi 
+
+    if [ -e "${ID_FILE}" ]; then
+       echo "${ID_FILE} exists. "
+    else
+     if [ "`which expect 2>/dev/null`" == "" ]; then
+       # Expect is not installed, prompt the user.
+       ssh-keygen -t rsa -f ${ID_FILE}
+     else
+       # expect seems to be installed use it.
+       echo "Generting ssh identity for CMS. ${ID_FILE}"
+       expect -c '
+       set timeout -1
+       spawn ssh-keygen -q -t rsa -f '${ID_FILE}'
+       match_max 100000
+       expect {
+        "Enter passphrase (empty for no passphrase):" {
+            send -- "\r"
+            expect {
+               "Enter same passphrase again:" {
+               send -- "\r"
+               expect eof
+               }
+           }
+        }
+        "Overwrite"  {
+            send -- "n\r"
+            expect eof
+        }
+       }
+       '
+     fi
+     chmod 0600 ${ID_FILE}*
+   fi
+}
+
+generate_cms_id_old()
+{
+    if [ -e ~/.ssh/cms_id_rsa ]; then
+       echo " " 
+    else
+       echo "Generting ssh identity for CMS."
+       ssh-keygen -t rsa -f ~/.ssh/cms_id_rsa
+       chmod 0600 ~/.ssh/cms_id_rsa*
+    fi
+}
+
+download_convirt()
+{
+
+   cd $CONVIRT_BASE
+   wget --no-cache $CONVIRT_DOWNLOAD_URL -O $CONVIRT_TARBALL 
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "ERROR: fetching convirt tarball from $CONVIRT_DOWNLOAD_URL"
+      return $ret
+   fi
+
+}
+
+unpack_convirt()
+{
+
+   cd $CONVIRT_BASE
+   tar -xzf $CONVIRT_TARBALL
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "ERROR: Opening tar package $CONVIRT_TARBALL"
+      deactivate
+      return $ret
+   fi
+}
+
+
+success_msg()
+{
+# get the actual port from development.ini
+PORT=8081
+cat <<EOF
+
+     ConVirt Management Server (CMS) setup complete.
+
+     To start CMS, give the following commands.
+
+       cd $CONVIRT_DIR 
+       ./convirt-ctl start
+     
+     By default the CMS listens on $PORT port. So make sure that your firewall
+     allows TCP $PORT port
+     Typically this can be achieved by using the following command as root user
+
+       iptables -I INPUT -p tcp --dport $PORT -j ACCEPT 
+ 
+      Once done, you should be able to access ConVirt application using 
+        http://$HOSTNAME:$PORT/
+     
+
+EOF
+}
+
+
+echo "install common functions sourced."
+
+deactivate_env()
+{
+  if [ "$VIRTUAL_ENV" != "" ]; then
+    deactivate
+  fi
+}
+
+# run as non-root
+setup_convirt()
+{
+   if [ -e $VIRTUAL_ENV_DIR/bin/activate ]; then 
+     source $VIRTUAL_ENV_DIR/bin/activate
+   else 
+     echo "Virtual environment not found at $VIRTUAL_ENV_DIR."
+     echo "Will try to use TG2 installed in the system." 
+   fi
+   cd $CONVIRT_DIR/src/convirt/web/convirt
+
+   if [ $DIST == "Ubuntu" ] && [ $VER == "12.04" ]; then
+      echo "Updating DecoratorTools and turbojson for Ubuntu 12.04"
+      easy_install -U DecoratorTools 
+      easy_install -U turbojson 
+   fi
+
+   python setup.py develop
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "ERROR: Running python setup.py develop."
+      deactivate_env
+      return $ret
+   fi
+
+   cd $CONVIRT_DIR
+   ./convirt-ctl setup
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "ERROR: running convirt-ctl setup."
+      deactivate_env
+      return $ret
+   fi
+
+   generate_cms_id
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "WARNING: Problem generating CMS id. Key based authentication may not work."
+      deactivate_env
+      return 0
+   fi
+   
+   fix_encoding_to_utf8
+   ret=$?
+   if [ $ret != 0 ]; then
+      echo "WARNING: Problem changing default python charset to utf-8."
+      deactivate_env
+      return 0
+   fi
+   
+   deactivate_env
+   success_msg
+}
+

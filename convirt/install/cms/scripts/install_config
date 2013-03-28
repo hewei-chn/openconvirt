@@ -1,0 +1,13 @@
+# As non root
+CONVIRT_BASE=~
+CONVIRT_DIR=$CONVIRT_BASE/convirt
+VIRTUAL_ENV_NAME=tg2env
+VIRTUAL_ENV_DIR=$CONVIRT_DIR/$VIRTUAL_ENV_NAME
+
+if [ "$SERVER" == "" ]; then
+   SERVER=www.convirture.com
+fi
+# convirt urls
+CONVIRT_TARBALL=convirt-2.0.tar.gz
+CONVIRT_DOWNLOAD_URL=http://${SERVER}/downloads/convirt/2.0/$CONVIRT_TARBALL
+

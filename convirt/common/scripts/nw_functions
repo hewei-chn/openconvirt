@@ -1,0 +1,448 @@
+#
+#   ConVirt   -  Copyright (c) 2008 Convirture Corp.
+#   ======
+#
+# ConVirt is a Virtualization management tool with a graphical user
+# interface that allows for performing the standard set of VM operations
+# (start, stop, pause, kill, shutdown, reboot, snapshot, etc...). It
+# also attempts to simplify various aspects of VM lifecycle management.
+#
+#
+# This software is subject to the GNU General Public License, Version 2 (GPLv2)
+# and for details, please consult it at:
+#
+#    http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+# 
+#
+# author : mkelkar@users.sourceforge.net
+#
+
+# Contains utility functions for network setup
+#
+
+## returns physical interface names
+##Need to figure if should return wireless cards as well
+get_physical_interfaces()
+{
+#  IFACES=`ls -ld /sys/class/net/*/device | sed -e 's/.*\/sys\/class\/net\///' -e 's/\/device.*//' | xargs`
+#  echo $IFACES
+  (ls -d /sys/class/net/*/device 2> /dev/null) | awk -F'/' '{ print  $(NF-1) }'
+  return 0
+}
+
+get_num_physical_interfaces()
+{
+  phy_ifs=(`get_physical_interfaces`)
+  echo ${#phy_ifs[@]}
+}
+
+get_bond_interfaces()
+{
+  
+  #BOND_IFACES=`ls -ld /sys/class/net/*/bonding 2> /dev/null | sed -e 's/.*\/sys\/class\/net\///' -e 's/\/bonding.*//' | xargs`
+  #echo $BOND_IFACES
+  (ls -d /sys/class/net/*/bonding 2> /dev/null) | awk -F'/' '{ print  $(NF-1) }'
+  return 0
+}
+
+get_bond_slaves()
+{
+  bond=$1
+  BOND_SLAVES=`cat /sys/class/net/${bond}/bonding/slaves 2> /dev/null` 
+  echo $BOND_SLAVES
+  return 0
+}
+
+
+function list_bridges()
+{
+# ls -ld /sys/class/net/*/bridge | sed -e 's/.*\/sys\/class\/net\///' -e 's/\/bridge.*//'  
+  (ls -d /sys/class/net/*/bridge 2> /dev/null) | awk -F'/' '{ print  $(NF-1) }'
+}
+
+# return interfaces which are already bridged
+function get_already_bridged()
+{
+  (ls -d /sys/class/net/*/brif/* 2> /dev/null) | awk -F'/' '{ print  $NF }'
+}
+
+function bridge_exists
+{
+   bridge_name=$1
+   if [ "$1" != "" ]; then
+      for b in `list_bridges`
+      do
+        if [ "$1" == "$b" ]; then
+           return 0
+        fi
+     done
+   fi
+   return 1
+}
+
+#get device list which has vlans created on them
+get_devices_for_all_vlan()
+{
+   devs=""
+   if [ -e /proc/net/vlan/config ]; then
+      devs=`cat /proc/net/vlan/config | sed -e 's/[ ]*//g' | awk -F'|' '{ if (NF==3) print $3; }' | sort -u`
+   fi
+   echo "$devs"
+}
+
+# return ports already part of the bridge
+get_bridge_ports()
+{
+    bridge_name=$1
+    echo `ls -d /sys/class/net/$bridge_name/brif/* 2> /dev/null | awk -F '/' '{ print $NF }'`
+}
+
+# return 0 if the port is already part of the bridge
+check_port_in_bridge()
+{
+    port=$1
+    bridge_name=$2
+
+    br_ports=`get_bridge_ports $bridge_name`
+    for s in $br_ports
+    do
+      if [ "$s" = "$port" ]; then
+         return 0
+      fi
+    done
+    return 1
+}
+
+
+# Return the candidates for which bridge can be created
+# look at the bonds, and remove slaves
+# remove interfaces which are already part of the bridge
+function get_candidates_for_bridging()
+{
+  phy_ifs=`get_physical_interfaces`
+  bond_ifs=`get_bond_interfaces`
+  already_bridged=`get_already_bridged` 
+  vlan_devs=`get_devices_for_all_vlan`
+
+  for bond in $bond_ifs
+  do
+    slave_ifs=`get_bond_slaves $bond`
+    for slave in $slave_ifs
+    do
+      phy_ifs=`echo $phy_ifs | sed -e 's/'$slave'//g'`
+    done
+    if [ "$phy_ifs" == "" ]; then
+      phy_ifs=$bond
+    else
+      phy_ifs="$phy_ifs $bond"
+    fi
+  done 
+
+  # Skip the ones that have VLANs on them
+  for dev in $vlan_devs
+  do
+    phy_ifs=`echo $phy_ifs | sed -e 's/'$dev'//g'`
+  done
+
+
+  # Now you got all the candidates. 
+  # Lets find out if they are already part of the bridge or not.
+  for slave in $already_bridged
+  do
+    phy_ifs=`echo $phy_ifs | sed -e 's/'$slave'//g'`
+  done
+
+
+
+  echo $phy_ifs 
+   
+}
+
+
+#enable ip forwarding in persistent manner
+enable_ip_forward()
+{
+  echo 1 > /proc/sys/net/ipv4/ip_forward
+  for f in /proc/sys/net/ipv4/conf/*/rp_filter ; do echo 1 > $f ; done
+
+  # Make it persistent.
+  SYSCTL_CONF=/etc/sysctl.conf
+  if [ ! -e $SYSCTL_CONF ]; then
+     echo "WARNING : Could not make ip forwarding persistent. $SYSCTL_CONF not found."
+    return
+  fi
+
+  # check if sysctl.conf needs to be modified.
+  if [ `grep -c1 "^net.ipv4.ip_forward.*=.*1" ${SYSCTL_CONF}` -eq 1 ]; then
+     if [ `grep -c1 "^net.ipv4.conf.default.rp_filter.*=.*1" ${SYSCTL_CONF}` -eq 1 ]; then
+        return
+     fi
+  fi
+  # We need modification   
+  backup_ext=".orig.`date +"%Y%m%d.%H%M%S"`"
+  sed -i${backup_ext} "
+  /net.ipv4.ip_forward/ {s/^#//;s/0/1/}
+  /net.ipv4.conf.default.rp_filter/ {s/^#//;s/0/1/}
+  " ${SYSCTL_CONF}
+}
+
+
+### 
+# Private bridge with NATing option functions
+###
+
+setup_privatenw () {
+P_BRIDGE_NAME=$1
+P_NETWORK=$2
+P_BRIDGE_ADDR=$3
+DHCP_START=$4
+DHCP_END=$5
+NET_MASK=$6
+OUT_INTERFACE=""
+IN_INTERFACE=""
+if [ "$7" != "ANY" ]; then
+  OUT_INTERFACE="--out-interface $7"
+  IN_INTERFACE="--in-interface $7"
+fi
+INTERFACE_NAME=$7
+LOGFILE_NAME=$8
+
+if [ "$LOGFILE_NAME" != "" ]; then
+  echo $P_BRIDGE_NAME $P_NETWORK $P_BRIDGE_ADDR $DHCP_START $DHCP_END $NET_MASK $IN_INTERFACE $OUT_INTERFACE >> $LOGFILE_NAME
+fi
+
+#/var/cache/convirt/networks/ directory does not exist then create it.
+if [ ! -d "/var/cache/convirt/networks/" ]; then
+    mkdir -p /var/cache/convirt/networks/
+fi
+
+bridge_exists ${P_BRIDGE_NAME}
+if [ $? != 0 ]; then
+   output=`brctl addbr ${P_BRIDGE_NAME}`
+   check_function_return_value "${output} - Unable to add bridge"
+else
+   echo "Warning bridge ${P_BRIDGE_NAME} exists"
+fi
+
+output=`ifconfig ${P_BRIDGE_NAME} ${P_BRIDGE_ADDR} netmask ${NET_MASK}`
+check_function_return_value "${output} - Unable to set bridge address"
+
+# check if address is already bounded then no need to issue this command
+is_running=`ps -ef | grep "listen-address[ ]*${P_BRIDGE_ADDR}" | grep -c1 dns`
+
+if [ $is_running -ne 1 ]; then
+  if [ "$DHCP_START" != "NONE" ] && [ "$DHCP_END" != "NONE" ]; then
+    sleep 2  # required, else dnamasq gives some weired error for binding on ipv6
+    output=`dnsmasq --strict-order --bind-interfaces --pid-file --conf-file --interface ${P_BRIDGE_NAME} --listen-address ${P_BRIDGE_ADDR} --except-interface lo --dhcp-leasefile=/var/cache/convirt/networks/$P_BRIDGE_NAME.leases --dhcp-range=$DHCP_START,$DHCP_END`
+  check_function_return_value "${output} - Unable to start dhcp server for virtual netowrk."
+  fi
+fi
+
+## Add isolation 
+#
+# clean up old rules
+iptables -D FORWARD  --out-interface ${P_BRIDGE_NAME}  -j REJECT --reject-with icmp-port-unreachable > /dev/null 2> /dev/null 
+iptables -D FORWARD --in-interface ${P_BRIDGE_NAME} -j REJECT --reject-with icmp-port-unreachable  > /dev/null 2> /dev/null 
+iptables -D FORWARD --in-interface ${P_BRIDGE_NAME} --out-interface ${P_BRIDGE_NAME}  -j ACCEPT  > /dev/null 2> /dev/null
+# add rules
+iptables -I FORWARD  --out-interface ${P_BRIDGE_NAME}  -j REJECT --reject-with icmp-port-unreachable 
+iptables -I FORWARD --in-interface ${P_BRIDGE_NAME} -j REJECT --reject-with icmp-port-unreachable 
+iptables -I FORWARD --in-interface ${P_BRIDGE_NAME} --out-interface ${P_BRIDGE_NAME}  -j ACCEPT 
+
+# Open up firewall for dhcp and bootp
+# delete if exists
+iptables -D INPUT  --protocol tcp --destination-port 53 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT > /dev/null 2>/dev/null
+iptables -D INPUT  --protocol udp --destination-port 53 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT > /dev/null 2>/dev/null
+iptables -D INPUT  --protocol tcp --destination-port 67 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT > /dev/null 2>/dev/null
+iptables -D INPUT  --protocol udp --destination-port 67 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT > /dev/null 2>/dev/null
+# add rules
+iptables -I INPUT  --protocol tcp --destination-port 53 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT
+iptables -I INPUT  --protocol udp --destination-port 53 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT
+iptables -I INPUT  --protocol tcp --destination-port 67 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT
+iptables -I INPUT  --protocol udp --destination-port 67 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT
+ 
+# If NAT requested, ADD forwarding and nating rules. 
+if [ "$INTERFACE_NAME" != "" ]; then
+   # reentrant : delete and add
+   # delete
+   iptables -D FORWARD ${IN_INTERFACE} --out-interface ${P_BRIDGE_NAME} --destination ${P_NETWORK} -m state --state RELATED,ESTABLISHED -j ACCEPT  > /dev/null 2> /dev/null
+   iptables -D FORWARD --in-interface ${P_BRIDGE_NAME} ${OUT_INTERFACE} --source ${P_NETWORK} -j ACCEPT  > /dev/null 2> /dev/null
+   iptables -t nat -D POSTROUTING --source ${P_NETWORK} ${OUT_INTERFACE} -j MASQUERADE  > /dev/null 2> /dev/null
+   # Add
+   iptables -I FORWARD ${IN_INTERFACE} --out-interface ${P_BRIDGE_NAME} --destination ${P_NETWORK} -m state --state RELATED,ESTABLISHED -j ACCEPT
+   iptables -I FORWARD --in-interface ${P_BRIDGE_NAME} ${OUT_INTERFACE} --source ${P_NETWORK} -j ACCEPT
+   iptables -t nat -I POSTROUTING --source ${P_NETWORK} ${OUT_INTERFACE} -j MASQUERADE
+fi
+
+
+#TODO : Do we really need this here...check with MK. 
+# if we do this once in the nw_service, as well as in convirt-tool setup
+enable_ip_forward
+
+# Create the ifup script for the new bridge
+if [ -a "/dev/kvm" ]; then
+  mkdir -p /etc/kvm
+  sed  "{s/SWITCH_NAME/${P_BRIDGE_NAME}/} " < ${common_scripts}/qemubridge-ifup > /etc/kvm/qemu-ifup-${P_BRIDGE_NAME}
+  chmod 744 /etc/kvm/qemu-ifup-${P_BRIDGE_NAME}
+fi
+
+return 0
+} 
+
+
+remove_privatenw () {
+P_BRIDGE_NAME=$1
+P_NETWORK=$2
+P_BRIDGE_ADDR=$3
+DHCP_START=$4
+DHCP_END=$5
+NET_MASK=$6
+OUT_INTERFACE=""
+IN_INTERFACE=""
+if [ "$7" != "ANY" ]; then
+  OUT_INTERFACE="--out-interface $7"
+  IN_INTERFACE="--in-interface $7"
+fi
+INTERFACE_NAME=$7
+LOGFILE_NAME=$8
+
+if [ "$LOGFILE_NAME" != "" ]; then
+  echo $P_BRIDGE_NAME $P_NETWORK $P_BRIDGE_ADDR $DHCP_START $DHCP_END $NET_MASK $IN_INTERFACE $OUT_INTERFACE >> $LOGFILE_NAME
+fi
+
+bridge_exists ${P_BRIDGE_NAME}
+if [ $? != 0 ]; then
+   echo "WARNING : Bridge ${P_BRIDGE_NAME} does not exist."
+else
+   output=`ifconfig ${P_BRIDGE_NAME} down`
+   check_function_return_value "${output} - Unable to bring down bridge"
+
+   output=`brctl delbr ${P_BRIDGE_NAME}`
+   check_function_return_value "${output} - Unable to delete bridge"
+fi
+
+
+# check if address is already bounded then no need to issue this command
+process_id=`ps -ef | grep "listen-address[ ]*${P_BRIDGE_ADDR}" | grep -v "grep" | awk '{print $2}'`
+
+if [ "${process_id}" != "" ]; then
+  kill -9 ${process_id}
+fi
+
+iptables -D INPUT  --protocol tcp --destination-port 53 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT > /dev/null 2>/dev/null
+iptables -D INPUT  --protocol udp --destination-port 53 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT > /dev/null 2>/dev/null
+iptables -D INPUT  --protocol tcp --destination-port 67 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT > /dev/null 2>/dev/null
+iptables -D INPUT  --protocol udp --destination-port 67 --in-interface ${P_BRIDGE_NAME}  --jump ACCEPT > /dev/null 2>/dev/null
+
+# If NAT requested, remove forwarding and nating rules. 
+if [ "$INTERFACE_NAME" != "" ]; then
+    iptables -D FORWARD ${IN_INTERFACE} --out-interface ${P_BRIDGE_NAME} --destination ${P_NETWORK} -m state --state RELATED,ESTABLISHED -j ACCEPT > /dev/null 2> /dev/null
+    iptables -D FORWARD --in-interface ${P_BRIDGE_NAME} ${OUT_INTERFACE} --source ${P_NETWORK} -j ACCEPT > /dev/null 2> /dev/null
+    iptables -t nat -D POSTROUTING --source ${P_NETWORK} ${OUT_INTERFACE} -j MASQUERADE > /dev/null 2> /dev/null
+fi
+# remove isolation rules.
+iptables -D FORWARD  --out-interface ${P_BRIDGE_NAME}  -j REJECT --reject-with icmp-port-unreachable > /dev/null 2> /dev/null
+iptables -D FORWARD --in-interface ${P_BRIDGE_NAME} -j REJECT --reject-with icmp-port-unreachable > /dev/null 2> /dev/null
+iptables -D FORWARD --in-interface ${P_BRIDGE_NAME} --out-interface ${P_BRIDGE_NAME}  -j ACCEPT  > /dev/null 2> /dev/null
+
+# Remove the corresponding bridge script if it exists.
+if [ -a "/dev/kvm" ]; then
+  if [ -e /etc/kvm/qemu-ifup-${P_BRIDGE_NAME} ]; then
+     rm -f /etc/kvm/qemu-ifup-${P_BRIDGE_NAME}
+  fi
+fi
+
+#Remove lease file
+rm -f /var/cache/convirt/networks/$P_BRIDGE_NAME.leases 
+
+return 0 # return success
+} 
+
+
+###
+# Bridge setup for physical interface
+###
+
+create_xen_custom_script() { 
+  XEN_CUSTOM_FILE=convirt-xen-multibridge
+  xen_version=$1
+  PHY_IFACES=`get_candidates_for_bridging`
+  #cp "${XEN_CUSTOM_FILE}".orig  "${XEN_CUSTOM_FILE}"
+  create_template "${XEN_CUSTOM_FILE}"
+  for iface in $PHY_IFACES
+  do 
+    index=`echo $iface | sed 's/^[^0-9]*//'`
+    bridgeName=xenbr${index}
+    if [ ${xen_version} == "3.2" ]; then
+      bridgeName=${iface}
+    fi
+    echo '"$dir/network-bridge" "$@" vifnum='${index}' netdev='${iface}' bridge='${bridgeName} >> ${XEN_CUSTOM_FILE}
+  done
+  mv ${XEN_CUSTOM_FILE} /etc/xen/scripts
+  chmod u+x /etc/xen/scripts/${XEN_CUSTOM_FILE}
+}
+
+# Update /etc/sysctl.conf with rules to skip firewall for bridge traffic.
+update_sysctl()
+{
+   SYSCTL_CONF=/etc/sysctl.conf
+   SYSCTL=sysctl
+
+   if [ `grep -c '^net.bridge.bridge-nf-call-.*tables.*0' $SYSCTL_CONF` -lt 3 ]; then
+      echo "Adding required net.bridge.bridge-nf-calls settings to $SYSCTL_CONF." 
+      cat >> $SYSCTL_CONF <<EOF
+
+# Added by convirt-tool :Skip firewall for bridge traffic
+net.bridge.bridge-nf-call-ip6tables = 0
+net.bridge.bridge-nf-call-iptables = 0
+net.bridge.bridge-nf-call-arptables = 0
+
+EOF
+$SYSCTL -p $SYSCTL_CONF
+   else
+      echo "Required net.bridge.bridge-nf-calls already present in $SYSCTL_CONF."
+   fi
+
+}
+
+setup_public_bridge_for_kvm() { 
+  echo "Public bridge setup not implemented for this Linux Distribution."
+  echo "Please do public bridge setup as per KVM documentation".
+}
+
+setup_bridge_scripts_for_kvm() {
+     for bridgeName in `list_bridges`
+     do
+       mkdir -p /etc/kvm
+       sed  "{s/SWITCH_NAME/$bridgeName/} " < ${common_scripts}/qemubridge-ifup > /etc/kvm/qemu-ifup-${bridgeName}
+       chmod 744 /etc/kvm/qemu-ifup-${bridgeName}
+    done
+}
+
+create_template(){
+
+cat <<EOF > $1
+#!/bin/bash
+#
+#   ConVirt   -  Copyright (c) 2008 Convirture Corp.
+#   ======
+#
+# ConVirt is a Virtualization management tool with a graphical user
+# interface that allows for performing the standard set of VM operations
+# (start, stop, pause, kill, shutdown, reboot, snapshot, etc...). It
+# also attempts to simplify various aspects of VM lifecycle management.
+#
+#
+# This software is subject to the GNU General Public License, Version 2 (GPLv2)
+# and for details, please consult it at:
+#
+#    http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+# 
+#
+# author : mk <mk@users.sourceforge.net>
+# network-xen-multi-bridge
+#
+EOF
+echo 'dir=$(dirname "$0")' >> $1
+}
+

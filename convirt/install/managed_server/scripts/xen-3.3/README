@@ -1,0 +1,10 @@
+#  Copyright (c) 2007 Convirture Corporation
+
+Instructions
+------------
+- run "configure-xend.sh" as root.
+- once the script concludes, your xen 3.3 environment
+will be fully patched and configured for centralised 
+management using ConVirt.
+
+Please report bugs/feedback at http://www.convirture.com.

@@ -1,0 +1,62 @@
+#!/bin/bash
+
+base=`dirname $0`/../..
+if [ "$base" = "" ]; then
+   base="../.."
+fi 
+
+src=$base/image_store
+appliances_src=$base/appliance_store
+#echo $src, $appliances_src
+
+if [ ! -d $src ]; then
+   # try the installed location 
+   base="/var/cache/convirt"
+   src=$base/image_store
+   appliances_src=$base/appliance_store
+   #echo $src, $appliances_src
+fi
+
+#initialize the image store
+if [ ! -d $src ]; then
+  echo "Source Image store not found : $src !"
+  exit 1
+fi
+
+#initialize the appliance store
+if [ ! -d $appliances_src ]; then
+  echo "Source Appliance store not found : $appliance_src !"
+  exit 1
+fi
+
+if [ -z "$1" ]; then
+   id=`id -u`
+   if [ "$id" = "0" ]; then
+      store_dest="/var/cache/convirt"
+      appliance_store_dest="/var/cache/convirt"
+   else
+      # Non root user trying to set up private image store
+      store_dest=~/.convirt
+      appliance_store_dest=~/.convirt
+   fi
+else
+   store_dest=$1
+   appliance_store_dest=$1
+fi
+
+mkdir -p $store_dest
+cp -arp $src $store_dest
+
+if [ "0" = "$?" ]; then
+  echo "Image Store created at $store_dest"
+else
+  echo "Error creating image store at $store_dest"
+fi
+
+cp -rp $appliances_src $appliance_store_dest
+if [ "0" = "$?" ]; then
+  echo "Appliance Store created at $appliance_store_dest"
+else
+  echo "Error creating Appliance store at $appliance_store_dest"
+fi
+

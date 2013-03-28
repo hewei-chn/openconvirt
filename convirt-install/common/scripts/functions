@@ -1,0 +1,352 @@
+#!/bin/bash
+#
+#   ConVirt   -  Copyright (c) 2008 Convirture Corp.
+#   ======
+#
+# ConVirt is a Virtualization management tool with a graphical user
+# interface that allows for performing the standard set of VM operations
+# (start, stop, pause, kill, shutdown, reboot, snapshot, etc...). It
+# also attempts to simplify various aspects of VM lifecycle management.
+#
+#
+# This software is subject to the GNU General Public License, Version 2 (GPLv2)
+# and for details, please consult it at:
+#
+#    http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+# 
+#
+# author : Jd <jd_jedi@users.sourceforge.net>
+#
+
+# return items in the list 
+get_list_count()
+{
+   list_temp=(`echo $@`)
+   echo ${#list_temp[@]}
+}
+
+# Detect the Linux distro
+detect_distro()
+{
+   DIST="Unknown"
+   VER="Unknown"
+
+   KERNEL=`uname -r`
+   ARCH=`uname -m`
+
+   if [ -f /etc/SuSE-release ] ; then
+      DIST="SUSE"
+      grep "SUSE Linux Enterprise" /etc/SuSE-release > /dev/null 2> /dev/null
+      if [ "$?" == "0" ]; then
+         DIST="SLES"  # SLED kind a same ?
+      fi
+      VER=`grep VERSION /etc/SuSE-release | sed s/.*=\ //`
+      grep "PATCHLEVEL" /etc/SuSE-release > /dev/null 2> /dev/null
+      if [ "$?" == "0" ]; then
+         PATCH=`grep PATCHLEVEL /etc/SuSE-release | sed s/.*=\ //`
+         VER=$VER.$PATCH
+      fi
+   elif [ -f /etc/debian_version ] ; then
+      DIST="Debian" 
+      VER="`cat /etc/debian_version`"
+      CODE_NAME="`cat /etc/debian_version`"
+      # check if it is Ubuntu
+      if [ -f /etc/lsb-release ]; then
+         grep Ubuntu /etc/lsb-release > /dev/null 2>/dev/null
+         if [ "$?" == "0" ]; then
+            DIST="Ubuntu"
+            VER=`grep DISTRIB_RELEASE= /etc/lsb-release | sed s/.*=//`
+            CODE_NAME=`grep DISTRIB_CODENAME= /etc/lsb-release | sed s/.*=//`
+         fi
+      fi 
+   elif [ -f /etc/fedora-release ] ; then
+      DIST='Fedora'
+      CODE_NAME=`cat /etc/fedora-release | sed s/.*\(// | sed s/\)//`
+      VER=`cat /etc/fedora-release | sed s/.*release\ // | sed s/\ .*//`
+   elif [ -f /etc/redhat-release ] ; then
+      DIST='RedHat'
+      CODE_NAME=`cat /etc/redhat-release | sed s/.*\(// | sed s/\)//`
+      VER=`cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//`
+   fi
+   
+   if [ "$DIST" == "Unknown" ]; then
+       return 1
+   fi
+   return 0
+}
+
+# detect virtualization platform
+detect_v_platform()
+{
+    # check if it is Xen
+    v_platform="Unknown"
+    v_platform_ver="Unknown"
+    if [ -a "/proc/xen/capabilities" ]; then
+	if [ "`cat /proc/xen/capabilities`" == 'control_d' ]; then
+	    v_platform="XEN"
+	fi
+        # assume booted in right kernel and xend is running
+	xm_info=`xm info`
+	if [ "$?" == "0" ]; then
+	    xen_major=`xm info | grep -e xen_major | sed 's/^.*: //g'`
+	    xen_minor=`xm info | grep -e xen_minor | sed 's/^.*: //g'`
+	    xen_extra=`xm info | grep -e xen_extra | sed 's/^.*: //g'`
+	    xen_extra=${xen_extra:1:1}
+	    v_platform_ver="$xen_major.$xen_minor"
+	    if [ "$xen_extra" != "" ]; then
+		v_platform_ver="$v_platform_ver.$xen_extra"
+	    fi
+        else
+            echo "Xen server (xend) is not running... "
+	    return 1
+	fi
+        return 0
+    fi
+    
+
+
+    # KVM check
+    if [ -a "/dev/kvm" ]; then
+	v_platform="KVM"
+	if [ "`modinfo kvm| grep ^version:`" != "" ]; then
+            v_info=`modinfo kvm`
+            if [ "$?" != "0" ]; then
+		echo "modinfo Failed. Please make sure KVM is loaded correctly."
+		return 1
+	    fi
+	    v_platform_ver=`echo "$v_info" | grep ^version: | sed 's/ //g' | sed 's/version:kvm-//g'`
+            if [ "$v_platform_ver" == "Unknown" ]; then
+		echo "Could dont get KVM version".
+		return 1
+            fi
+	else 
+            # modinfo does not contain the version use kvm command line
+            for prg_name in qemu-system-x86_64 qemu-kvm kvm /usr/libexec/qemu-kvm
+            do
+            	($prg_name -help > /dev/null 2> /dev/null)
+                ret=$?
+                if [ "$ret" != "1" ] && [ "$ret" != "0" ]; then
+                    echo "Skipping $prg_name"
+                    continue
+                fi
+                first_line=`$prg_name -help | head -1`
+                echo $first_line
+                p_ver=`echo $first_line |sed -e 's/.*(kvm-/(kvm-/' -e 's/.*(qemu-/(qemu-/' -e 's/,.*//' -e 's/(//' -e 's/)//'`
+                echo $p_ver
+                if [ "$p_ver" != "" ]; then
+                   v_platform_ver=$p_ver
+                   break
+                fi
+            done
+            if [ "$v_platform_ver" = "Unknown" ]; then 
+	       echo "KVM version not found in modinfo."
+	       return 1
+            else 
+               return 0
+            fi
+	fi
+	return 0
+    fi
+
+    return 1
+}
+
+
+# by default the xen version reported by xm info 
+# and the userspace python stuff are in sync.
+# There are some exceptions how ever.
+get_xen_userspace_ver()
+{
+    v_p_v=$1
+    
+    echo $v_p_v
+    return 0
+}
+
+
+# detect a bridge name
+get_xen_bridge_name_0()
+{
+    brctl_output=`brctl show`
+    if [ "$?" != "0" ]; then
+	echo "Error getting bridge name"
+	return 1
+    fi
+    br_name=`brctl show| grep peth | cut -f 1`
+    if [ "$br_name" == "" ]; then
+        br_name=`brctl show| grep eth | cut -f 1`
+        echo "Could not get bridge name." 
+	return 1
+    fi
+    if [ "$br_name" == "" ]; then
+        echo "Could not get bridge name." 
+	return 1
+    fi
+    echo "$br_name"
+    return 0
+}
+
+# new impl
+get_xen_bridge_name()
+{
+    brctl_output=`brctl show`
+    if [ "$?" != "0" ]; then
+        echo "Error getting bridge name"
+        return 1
+    fi
+    br_name=( $(brctl show| grep -v "bridge name" | awk -F'\t' '{ if ($1 == "") printf("%s ", $NF); else printf("\n%s %s ", $1, $6 ); }' | grep peth | awk '{ print $1 }' | sort) )
+    if [ "$br_name" == "" ]; then
+        echo "Could not get bridge name."
+        return 1
+    fi
+    if [ ${#br_name[*]} -gt 1 ]; then
+        echo "Multiple bridges found (${br_name[*]}). Selecting $br_name as default."  >&2
+    fi
+    brctl showstp $br_name 2>/dev/null >/dev/null
+    if [ "$?" == "0" ]; then
+        echo "$br_name"
+    else
+        echo "Could not get bridge name"
+        return 1
+    fi
+    return 0
+}
+
+## generic get default bridge
+get_default_bridge()
+{
+    if [ -x /sbin/ip ]; then
+	switch=( $(ip route list | awk '/^default / { sub(/.* dev /, ""); print $1 }' | sort) )
+    else
+	switch=( $(netstat -rn | awk '/^0\.0\.0\.0/ { print $NF }' | sort) )
+    fi
+    if [ ${#switch[*]} -gt 1 ]; then
+        echo "Multiple bridges found (${switch[*]}). Selecting $switch as default."  >&2
+    fi
+    brctl showstp $switch 2>/dev/null >/dev/null
+    if [ "$?" == "0" ]; then
+	echo "$switch"
+    else
+	echo "Could not get bridge name"
+	return 1
+    fi
+    return 0
+}
+
+# open_ports : Open firewall to allow traffic through given ports
+#              Make sure it survives reboot.
+# TODO: enhance it to take an interface name, network/mask etc.
+open_ports()
+{
+    
+    echo "open_ports : not implemented for ${DIST} distribution. "
+    return 1
+}
+
+
+# seed the default config file
+# Not required all the time hence it is empty here.
+seed_config()
+{
+   echo "Seeding config file is probably not required for ${DIST} platform"
+   return 0
+}
+
+seed_default_config()
+{
+    config_file="/etc/convirt.conf"
+    if [ -f $config_file ]; then
+       echo "$config_file already exists."
+       return 0    
+    fi
+ 
+    cat <<EOF > $config_file
+[DEFAULT]
+default_computed_options = ['arch', 'arch_libdir', 'device_model']
+
+[ENVIRONMENT]
+
+[PATHS]
+disks_dir =
+snapshots_dir =
+updates_file = /var/cache/convirt/updates.xml
+exec_path = $PATH:/usr/sbin
+cache_dir = /var/cache/convirt
+log_dir = /var/log/convirt
+image_store = /var/cache/convirt/image_store
+snapshot_file_ext = .snapshot.xm
+appliance_store = /var/cache/convirt/appliance_store
+xenconf_dir = /etc/xen
+
+[APPLICATION DATA]
+
+[CLIENT CONFIGURATION]
+
+EOF
+
+}
+
+# Update the conf file to have use_3_0_api=True or use_3_1_api
+adjust_xen_api_version()
+{
+    token=$1
+
+    if [ "$1" == "" ]; then
+       echo "adjust_xen_api must be called with an argument."
+       return 1
+    fi
+
+    # assume file at usual location
+    config_file="/etc/convirt.conf"
+    if [ ! -f $config_file ]; then
+	echo "Error : Could not find $config_file"
+	return 1
+    fi
+
+    grep "\[DEFAULT\]" $config_file
+    if [ "$?" != "0" ]; then
+	dt_timestamp=`date +"%Y%m$d.%H%M%S"`
+	mv $config_file $config_file.$dt_timestamp
+	echo "[DEFAULT]" > $config_file
+	cat $config_file.$dt_timestamp >> $config_file
+	rm -f $config_file.$dt_timestamp
+	echo "DEFAULT section added to $config_file"
+    fi
+
+
+    grep $token $config_file
+    if [ "$?" == "0" ]; then
+	echo "$token found. Assuming it is set correctly"
+	return 0
+    fi
+
+    sed -i$dt_timestamp -e "s/\[DEFAULT\]/[DEFAULT]\n$token=True/" $config_file
+    if [ "$?" != "0" ]; then
+	echo "Error setting $token to $config_file. Please add $token=True in the [DEFAULT] section of $config_file."
+	return 0
+    fi    
+
+}
+
+# if a token exists in a list or not. (there should be a built in function .. but could not find it.
+exists_in_list()
+{
+    param=$1
+    shift
+    list=$*
+    for i in $list
+    do
+	if [ $param == $i ]; then
+	    return 0
+	fi
+    done
+    return 1
+}
+# restart_network: Restarts the network
+restart_network()
+{
+   /etc/init.d/network restart
+   return 0
+}
+
+

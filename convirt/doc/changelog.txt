@@ -1,0 +1,69 @@
+ConVirt 2..1.1
+--------------
+Ubuntu 12.04 Support
+vhostnet support for KVM
+Bug fix
+
+ConVirt 2..1
+-------------
+This update include nemerous bug fixes, enhancements requested by community
+over a period of last several months. Some of them are listed here.
+
+* SSH to managed server
+* IE8 support
+* Annotation for Server and Virtual Machines
+* VNC Password for KVM virtual machines
+* SLES 11 SP2 certification
+* Numerous bug fixes and few scalability improvements
+* diagnostic capabilities to identify problems without shutting down the
+Management server
+* Collect annonymous deployment information to improve features and guide
+future development. This can be turned off by changing setting in
+development.ini
+
+
+ConVirt 2.0.1
+-------------
+This update include nemerous bug fixes, enhancements requested by community
+over a period of last several months. Some of them are listed here.
+
+- Start VMs when server reboots
+
+- Configuration files are also maintained outside ConVirt.
+
+- Show VMs running outside ConVirt
+
+- Improved server state detection
+
+- Enhanced KVM Support
+  Support for virtio network and block devices
+
+- Enhanced convirt-tool
+  Depenencies added for CMS and managed server to prepare virtualization setup
+  in a snap. Detect bonds and create necessary bridges for KVM networking.
+
+- New certifications for following linux distributions
+  Ubuntu 10.04/10.10, SLES 11 SP1, RHEL 5.x/6.0 etc.
+
+
+ConVirt 2.0
+------------
+
+This is a first release of a web based interface of ConVirt.
+It has all the features of ConVirt 1.1 and much more with the ease of managing
+your environment via web interface.
+
+- Web Based interface
+  ConVirt has grown in to multi-tier web application with hightly interactive
+  web based interface. 
+
+- Historical Metrics
+  Now you can see historical performance of your virtual machines and physical
+  servers historically
+
+- Multi-admin management
+  Now you can create multiple adminstrators who can manage the environment.
+
+- Improved Dashboards
+  Now you can see all relevant information in a well organized dashboard. 
+

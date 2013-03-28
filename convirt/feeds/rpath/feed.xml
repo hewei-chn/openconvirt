@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<feed>
+	<title>Virtual Appliances</title>
+	<link rel="self" href="http://www.convirture.com/rpath/feed.xml"/>
+	<link href="http://www.convirture.com/"/>
+	<id>http://www.convirture.com/rpath/feed.xml</id>
+	<updated>2008-01-19 15:00:06</updated>
+
+	
+	<entry>
+		<title type="html">AsteriskNOW</title>
+		<link href="http://www.rpath.org/rbuilder/project/asterisk/"/>
+
+		<description type="html">
+			<![CDATA[ Engineered by Digium in conjunction with rPath, AsteriskNow, formerly PoundKey, includes all the Linux components necessary to run, debug and build Asterisk, and only those components. You no longer have to worry about kernel versions and package dependencies. Unlike other Linux distributions used to deploy Asterisk, no unnecessary components that might compromise security or performance are included. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/asterisk/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=18951" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="asterisk-0.9.6.5-x86.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="285115596" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2007-07-26 18:51:19</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=18952" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="asterisk-0.9.6.5-x86_64.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="296290517" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86_64"/>
+			
+			<updated>2007-07-26 18:51:19</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">The Gallery Appliance</title>
+		<link href="http://www.rpath.org/rbuilder/project/gallery/"/>
+
+		<description type="html">
+			<![CDATA[ The Gallery Appliance is an rPath based vmware image intended for the testing of Gallery 1 &amp; 2 by interested users. It includes the full releases of both Gallery 1 and 2 and all of the utility programs that are useful along with them. They are both pre-configured and ready to go, out of the box. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/gallery/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=15790" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="gallery-1.1-x86.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="141431013" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86"/>
+			
+			<updated>2007-04-20 17:48:43</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=15793" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="gallery-1.1-x86.tgz"
+								compressed="gzip"
+								archive="true"
+								size="137562494" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86"/>
+			
+			<updated>2007-04-20 17:48:43</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">Joomla Appliance</title>
+		<link href="http://www.rpath.org/rbuilder/project/joomla/"/>
+
+		<description type="html">
+			<![CDATA[ An appliance that bundles up PHP, MySQL, Apache, phpMyAdmin, Joomla! and the rPath Appliance Agent to provide a self-contained, turn-key, updatable Joomla appliance. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/joomla/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=19101" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="joomla-1.0.12-x86.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="136265890" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86"/>
+			
+			<updated>2007-08-03 10:35:51</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=19107" type="XVA">
+			<platform name="Xen"/>
+			<package filename="joomla-1.0.12-x86.xva.zip"
+								compressed="zip"
+								archive="false"
+								size="136620194" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86"/>
+			
+			<updated>2007-08-03 10:35:51</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=19102" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="joomla-1.0.12-x86_64.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="147415273" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86_64"/>
+			
+			<updated>2007-08-03 10:35:51</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">KnowledgeTree Appliance</title>
+		<link href="http://www.rpath.org/rbuilder/project/knowledgetree/"/>
+
+		<description type="html">
+			<![CDATA[ KnowledgeTree(tm) Document Management System (DMS) is a commercial open source web-based document management system. This installation boots up with a running system on MySQL with no additional system configuration needed. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/knowledgetree/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=19613" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="knowledgetree-3.4.2-x86.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="107760758" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86"/>
+			
+			<updated>2007-08-22 14:24:14</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">LAMP appliance</title>
+		<link href="http://www.rpath.org/rbuilder/project/lamp/"/>
+
+		<description type="html">
+			<![CDATA[ The LAMP Appliance brings the best of breed Web application tools together in one easily-deployable form factor. From the Apache Web server, to your choice of databases (MySQL and PostgreSQL), to the three preeminent scripting languages (Perl, PHP, and Python), the Linux-based LAMP Appliance gives you the foundation for the database-backed Web application of your choice. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/lamp/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=22394" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="lamp-1.3.2-x86.fs.tgz"
+								compressed="gzip"
+								archive="true"
+								size="193720320" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86"/>
+			
+			<updated>2007-12-08 05:42:52</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=22396" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="lamp-1.3.2-x86.fs.tgz"
+								compressed="gzip"
+								archive="true"
+								size="193269760" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2007-12-08 05:42:52</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=22402" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="lamp-1.3.2-x86_64.fs.tgz"
+								compressed="gzip"
+								archive="true"
+								size="204871680" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86_64"/>
+			
+			<updated>2007-12-08 05:42:52</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">lochDNS Appliance</title>
+		<link href="http://www.rpath.org/rbuilder/project/lochdns/"/>
+
+		<description type="html">
+			<![CDATA[ lochDNS provides a web-configured software appliance for DNS services, based on MyDNS, MyDNSConfig, MySQL, the Apache web server, and PHP. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/lochdns/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=21292" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="lochdns-0.12-x86.fs.tgz"
+								compressed="gzip"
+								archive="true"
+								size="126955520" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2007-10-19 21:06:06</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=21291" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="lochdns-0.12-x86.tgz"
+								compressed="gzip"
+								archive="true"
+								size="120817739" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2007-10-19 21:06:06</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=21296" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="lochdns-0.12-x86_64.fs.tgz"
+								compressed="gzip"
+								archive="true"
+								size="137523200" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86_64"/>
+			
+			<updated>2007-10-19 21:06:06</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=21298" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="lochdns-0.12-x86_64.tgz"
+								compressed="gzip"
+								archive="true"
+								size="130709306" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86_64"/>
+			
+			<updated>2007-10-19 21:06:06</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">Music Player Appliance</title>
+		<link href="http://www.rpath.org/rbuilder/project/musicpd/"/>
+
+		<description type="html">
+			<![CDATA[ This is a software appliance for MusicPD, the music player daemon: http://www.musicpd.org/ ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/musicpd/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=16341" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="musicpd-0.12.2-x86.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="122059527" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2007-05-06 13:07:00</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">MySQL Database Server</title>
+		<link href="http://www.rpath.org/rbuilder/project/mysql/"/>
+
+		<description type="html">
+			<![CDATA[ MySQL Software Appliance, a fully functioning Linux system that includes all the dependancies to effectively run a MySQL Database server. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/mysql/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=18991" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="mysql-5.0.45-x86.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="135138907" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86"/>
+			
+			<updated>2007-07-28 21:13:23</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=18996" type="XVA">
+			<platform name="Xen"/>
+			<package filename="mysql-5.0.45-x86.xva.zip"
+								compressed="zip"
+								archive="false"
+								size="136915991" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86"/>
+			
+			<updated>2007-07-28 21:13:23</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=18984" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="mysql-5.0.45-x86_64.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="145949370" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86_64"/>
+			
+			<updated>2007-07-28 21:13:23</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">PhoneHome - an openVPN appliance</title>
+		<link href="http://www.rpath.org/rbuilder/project/phonehome/"/>
+
+		<description type="html">
+			<![CDATA[ PhoneHome is an OpenVPN appliance. It comes with a default config which allows the end user to boot the appliance and start using the VPN right away - no config required (beyond client key generation). ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/phonehome/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=22725" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="phonehome-1.6.2-x86.fs.tgz"
+								compressed="gzip"
+								archive="true"
+								size="93347840" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86"/>
+			
+			<updated>2008-01-05 14:36:31</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=22724" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="phonehome-1.6.2-x86.fs.tgz"
+								compressed="gzip"
+								archive="true"
+								size="94965760" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2008-01-05 14:36:31</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=22729" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="phonehome-1.6.2-x86_64.fs.tgz"
+								compressed="gzip"
+								archive="true"
+								size="101959680" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86_64"/>
+			
+			<updated>2008-01-05 14:36:31</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">Port25 Mail Server</title>
+		<link href="http://www.rpath.org/rbuilder/project/port25/"/>
+
+		<description type="html">
+			<![CDATA[ The Port25 Appliance brings the best open source mail tools into one easily-deployable form factor. Whether your mail protocol of choice is SMTP(S), IMAP(S), or POP3(S), Port25 can deliver. In addition, Port25 includes mail filtering, anti-virus protection, and spam filtering capabilities. The goal is to make a mail appliance that is secure, manageable, scalable, fast, reliable, and that provide the best spam and virus protection available from Open Source Software. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/port25/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=9278" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="port25-0.11-x86.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="129638125" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2007-01-18 15:59:29</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">rPath Linux</title>
+		<link href="http://www.rpath.com/rbuilder/project/rpath/"/>
+
+		<description type="html">
+			<![CDATA[ rPath Linux provides a reference platform for the creation of software appliances or purpose-built distributions. Using rBuilder, customers can mold rPath Linux to suit their unique application requirements. rPath Linux is a high-quality implementation of open source technologies that closely tracks stable upstream project sources. rPath offers optional support and maintenance for rPath Linux to customers requiring it. ]]>
+		</description>
+
+		<id>http://www.rpath.com/rbuilder/project/rpath/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=20614" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="rpath-1.0.7-x86.fs.tgz"
+								compressed="gzip"
+								archive="true"
+								size="110284800" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2007-10-12 18:20:26</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=20615" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="rpath-1.0.7-x86_64.fs.tgz"
+								compressed="gzip"
+								archive="true"
+								size="117985280" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86_64"/>
+			
+			<updated>2007-10-12 18:20:26</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">Apache Tomcat Appliance</title>
+		<link href="http://www.rpath.org/rbuilder/project/ta/"/>
+
+		<description type="html">
+			<![CDATA[ Apache Tomcat is the de facto standard for open source web servers for high-traffic, high-availability environments. It powers thousands of enterprise, small business and home applications - mission critical to casual. Use this appliance to install Apache Tomcat for yourself or your organization. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/ta/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=17073" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="ta-1.3.1-x86.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="100691789" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2007-05-25 14:44:12</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=17072" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="ta-1.3.1-x86_64.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="108479411" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86_64"/>
+			
+			<updated>2007-05-25 14:44:12</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">MediaWiki Appliance</title>
+		<link href="http://www.rpath.org/rbuilder/project/vehera-base/"/>
+
+		<description type="html">
+			<![CDATA[ An appliance that bundles up PHP, MySQL, Apache and MediaWiki to provide a self-contained, turn-key Wiki appliance. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/vehera-base/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=15771" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="vehera-base-1.6.10-x86.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="125208199" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86"/>
+			
+			<updated>2007-04-26 22:45:18</updated>
+		</download>
+		
+	</entry>
+	
+	<entry>
+		<title type="html">WordPress Appliance</title>
+		<link href="http://www.rpath.org/rbuilder/project/wp/"/>
+
+		<description type="html">
+			<![CDATA[ WordPress is an elegant, single-user blogging tool for experienced and aspiring bloggers alike. This appliance encapsulates Wordpress and all its dependencies to make hosting as painless as possible. ]]>
+		</description>
+
+		<id>http://www.rpath.org/rbuilder/project/wp/</id>
+		<popularity_score>100</popularity_score>
+
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=18368" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="wp-2.2-x86.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="120888354" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2007-07-05 16:49:17</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=18374" type="XVA">
+			<platform name="Xen"/>
+			<package filename="wp-2.2-x86.xva.zip"
+								compressed="zip"
+								archive="false"
+								size="119141125" 
+								installed_size="-1"/>
+			<kernel PAE="True" arch="x86"/>
+			
+			<updated>2007-07-05 16:49:17</updated>
+		</download>
+		
+		<download href="http://www.rpath.org/rbuilder/downloadImage?fileId=18362" type="FILE_SYSTEM">
+			<platform name="Xen"/>
+			<package filename="wp-2.2-x86_64.img.gz"
+								compressed="gzip"
+								archive="false"
+								size="129061323" 
+								installed_size="-1"/>
+			<kernel PAE="False" arch="x86_64"/>
+			
+			<updated>2007-07-05 16:49:17</updated>
+		</download>
+		
+	</entry>
+	
+</feed>
+

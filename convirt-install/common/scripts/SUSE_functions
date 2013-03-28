@@ -1,0 +1,150 @@
+#!/bin/bash
+#
+#   ConVirt   -  Copyright (c) 2008 Convirture Corp.
+#   ======
+#
+# ConVirt is a Virtualization management tool with a graphical user
+# interface that allows for performing the standard set of VM operations
+# (start, stop, pause, kill, shutdown, reboot, snapshot, etc...). It
+# also attempts to simplify various aspects of VM lifecycle management.
+#
+#
+# This software is subject to the GNU General Public License, Version 2 (GPLv2)
+# and for details, please consult it at:
+#
+#    http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+# 
+#
+# author : Jd <jd_jedi@users.sourceforge.net>
+#
+
+# Distribution and version specific code can go here.
+# Assume that common functions are included
+# Assme the DIST and the VER to be set here.
+
+
+# open firewall port and make the change persistent.
+
+# For SUSE/SLES : The /etc/sysconfig/SuSEfirewall2 files has a
+# variable that needs to be changed.
+
+# OpenSuse 11 : Seems to have a .d directory where each service fragment can be
+#               specified. 
+
+
+open_ports()
+{
+
+    ports="$*"
+    ret=0
+    firewall_file="/etc/sysconfig/SuSEfirewall2"
+    service_name="SuSEfirewall2_setup"
+    if [ ! -w $firewall_file ]; then
+	echo "$firewall_file is not writable."
+	return 1
+    fi
+    
+    open_ports=`grep ^FW_SERVICES_EXT_TCP= $firewall_file| sed s/^FW_SERVICES_EXT_TCP=//`
+    # donot add our ports twice
+    for p in $open_ports
+    do
+        p=`echo $p | sed 's/"//g'`   # remove quote 
+        p=`echo $p | sed 's/,//g'`   # remove comma
+	exists_in_list $p $ports
+	if [ $? == 0 ]; then
+	    continue
+	fi
+	new_ports="$new_ports $p"
+    done
+    new_ports="$new_ports $ports"
+    new_ports=`echo $new_ports | sed "s/^ //"`   # remove leading space
+    sed -i -e "s/^FW_SERVICES_EXT_TCP=.*/FW_SERVICES_EXT_TCP=\"${new_ports}\"/"  $firewall_file
+
+    save_output=`service $service_name reload`
+    if [ "$?" != "0" ]; then
+	echo "Error saving firwall rules. ($save_output)"
+	ret=1
+    else
+	echo "$save_output"
+	echo "Firewall rules saved successfully."
+    fi
+    return $ret
+
+}
+
+# setup bridge for KVM on SUSE/SLES
+setup_public_bridge_for_kvm() {
+  # Iterate through interfaces
+  CHANGED="F"
+  PHY_IFACES=`get_candidates_for_bridging`
+  for iface in $PHY_IFACES
+  do
+    index=`echo $iface | sed 's/^[^0-9]*//'`
+    bridgeName=br$index
+
+    # create a backup file so people can restore easily
+    NW_FILE="/etc/sysconfig/network/ifcfg-$iface"
+    BACKUP_FILE="/etc/sysconfig/network/saved.ifcfg-${iface}.`date +"%Y%m%d.%H%M%S"`"
+
+    # check if the interface is not already part of some other
+    # bridge
+    grep "^BRIDGE_PORTS=" /etc/sysconfig/network/ifcfg-* | grep $iface >/dev/null 2>/dev/null
+    if [ $? == 0 ]; then
+       echo "interface $iface already part of bridge. skiping it"
+
+       mkdir -p /etc/kvm
+       sed  "{s/SWITCH_NAME/$bridgeName/} " < ${common_scripts}/qemubridge-ifup > /etc/kvm/qemu-ifup-${bridgeName}
+       chmod 744 /etc/kvm/qemu-ifup-${bridgeName}
+
+       continue
+    fi
+
+    BRIDGE_FILE=/etc/sysconfig/network/ifcfg-$bridgeName
+    if [ ! -e $BRIDGE_FILE ]; then
+      CHANGED="T"
+      # make backup of the network file
+      cp $NW_FILE $BACKUP_FILE
+      sed -e "s/$iface/$bridgeName/" $NW_FILE | grep -v "TYPE=" | grep -v "^DHCP" | grep -v "HWADDR" > $BRIDGE_FILE
+      echo "BRIDGE='yes'" >> $BRIDGE_FILE
+      echo "BRIDGE_PORTS='$iface'" >> $BRIDGE_FILE
+
+      sed -i "
+      s/^BOOTPROTO/#BOOTPROTO/
+      s/^BROADCAST/#BROADCAST/
+      s/^IPADDR=/#IPADDR/
+      s/^NETMASK=/#NETMASK/
+      s/^NETWORK=/#NETWORK/
+      " $NW_FILE
+
+      ### echo "BRIDGE=$bridgeName" >> $NW_FILE
+
+      mkdir -p /etc/kvm
+      sed  "{s/SWITCH_NAME/$bridgeName/} " < ${common_scripts}/qemubridge-ifup > /etc/kvm/qemu-ifup-${bridgeName}
+      chmod 744 /etc/kvm/qemu-ifup-${bridgeName}
+
+    fi
+  done
+  if [ "$CHANGED" == "T" ]; then
+     enable_ip_forward
+     restart_network
+  fi
+}
+
+# update the network service
+setup_nw_svc()
+{
+    if [ "$v_platform" == "KVM" ]; then
+       # fix and remove the xen dependencies
+       sed -i "s/xen.* //g" /etc/init.d/convirt-nw
+    fi
+    chkconfig --add convirt-nw
+    chkconfig convirt-nw on
+    return 0
+}
+install_common_dependencies(){
+    zypper -n --gpg-auto-import-keys in dnsmasq socat bridge-utils tunctl expect python-pexpect
+}
+#install convirt tool dependencies
+install_dependencies(){
+    install_common_dependencies
+}

@@ -1,0 +1,87 @@
+<body>
+<span style="font-size: 200%; font-family: serif; color:#0000FF;text-align: center">
+<center>Linux CD Install</center>
+</span>
+<br/>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: center">
+<center>Linux Installation from CD/DVD (unmodified)</center>
+</span>
+
+<br/><br/>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Type:
+</span>
+<font color="black" size="2">
+ConVirt Provisionable Template
+</font>
+
+<br/><br>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Version:
+</span>
+<font color="black" size="2" >
+2.0
+</font>
+
+<br/><br>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Author:
+</span>
+<font color="black" size="2">
+The ConVirt Team
+</font>
+
+
+<br/><br>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Requirements:
+</span>
+<font color="black" size="2">
+ConVirt v0.8+,  Xen v3.0.4+ OR KVM-70+, Hardware Virtualization (Intel VT/AMD SVM) enabled  processor, Xen-enabled Linux host, Bootable Linux CD/DVD.
+</font>
+
+<br/><br>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Description:
+</span>
+<font color="black" size="2">
+This template creates a 10G virtual disk (vbd) for use as the primary hard drive. The VM boots from a bootable Linux CD/DVD which, in turn, should kick off the distribution specific installation routine and deploy the OS on the primary hard drive.
+</font>
+
+
+<br/><br>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Instructions:
+</span>
+<font color="black" size="2">
+<table cellspacing="6">
+<tr>
+<td valign="top">1.</td>
+<td>Check the default provisioning parameters and alter them to suit your environment if necessary</td>
+</tr>
+<tr>
+<td valign="top">2.</td>
+<td><span style="color:red"> (Important)</span> The default location for the CD/DVD drive is set to <span style="font-weight:bold">/dev/cdrom</span>. Alter this to match your environment if necessary.</td>
+</tr>
+<tr>
+<td valign="top">3.</td>
+<td>Provision the VM configuration normally using ConVirt.</td>
+</tr>
+<tr>
+<td valign="top">4.</td>
+<td><span style="color:red"> (Important)</span> Once the installation is complete, use the "Set boot Device" context menu to change the boot device to the <span style="font-weight:bold"> Disk</span>. (This ensures that the VM boots from disk as opposed to CD on the next restart)</td>
+</tr>
+<tr>
+<td valign="top">5.</td>
+<td>Restart the VM.</td>
+</tr>
+</table>
+</font>
+<br><br>
+<span style="font-size: 150%; font-family: serif; color:#0000FF;text-align: left">
+Contact:
+</span>
+<font color="black" size="2">
+Visit <a href="http://www.convirture.com" target="_blank">ConVirt</a> . We can be reached there via our user forums or email.
+</font>
+</body>
